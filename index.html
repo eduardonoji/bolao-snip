@@ -624,6 +624,8 @@
   </div>
 
   <!-- MAIN SCREEN -->
+  <img id="boneco-ranking" src="/boneco.png" alt="" style="display:none;position:fixed;bottom:68px;right:0;width:25vw;max-width:160px;z-index:0;pointer-events:none;opacity:0.9;">
+
   <div id="screen-main" class="screen">
     <div class="topbar">
       <div class="topbar-title">Bolão Snip - 2026</div>
@@ -834,6 +836,9 @@ function switchTab(name, btn) {
 
   document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
+
+  const boneco = document.getElementById('boneco-ranking');
+  if (boneco) boneco.style.display = name === 'ranking' ? 'block' : 'none';
 
   if (name === 'ranking') loadRanking();
   if (name === 'admin') loadAdminPending();
