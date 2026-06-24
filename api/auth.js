@@ -1,6 +1,20 @@
-const { kv } = require("@vercel/kv");
+const { neon } = require("@neondatabase/serverless");
 
 const ADMIN_NICK = "eduardo";
+
+async function getDb() {
+  const sql = neon(process.env.DATABASE_URL);
+  await sql`
+    CREATE TABLE IF NOT EXISTS users (
+      nick TEXT PRIMARY KEY,
+      pass TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      role TEXT NOT NULL DEFAULT 'user',
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+  return sql;
+}
 
 module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -9,6 +23,7 @@ module.exports = async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
 
   const { action } = req.query;
+  const sql = await getDb();
 
   if (action === "register" && req.method === "POST") {
     const { nick, pass } = req.body;
@@ -18,26 +33,24 @@ module.exports = async function handler(req, res) {
     if (!/^[a-z0-9_]{2,20}$/.test(slug))
       return res.status(400).json({ error: "Apelido inválido (2–20 chars, letras/números/_)." });
 
-    const exists = await kv.hget("users", slug);
-    if (exists) return res.status(409).json({ error: "Apelido já em uso." });
+    const existing = await sql`SELECT nick FROM users WHERE nick = ${slug}`;
+    if (existing.length > 0) return res.status(409).json({ error: "Apelido já em uso." });
 
     const status = slug === ADMIN_NICK ? "approved" : "pending";
     const role   = slug === ADMIN_NICK ? "admin"    : "user";
+    const passB64 = Buffer.from(pass).toString("base64");
 
-    await kv.hset("users", {
-      [slug]: JSON.stringify({ nick: slug, pass: Buffer.from(pass).toString("base64"), status, role })
-    });
-
+    await sql`INSERT INTO users (nick, pass, status, role) VALUES (${slug}, ${passB64}, ${status}, ${role})`;
     return res.status(200).json({ ok: true, status, role });
   }
 
   if (action === "login" && req.method === "POST") {
     const { nick, pass } = req.body;
     const slug = (nick || "").trim().toLowerCase();
-    const raw  = await kv.hget("users", slug);
-    if (!raw) return res.status(404).json({ error: "Apelido não encontrado." });
+    const rows = await sql`SELECT * FROM users WHERE nick = ${slug}`;
+    if (rows.length === 0) return res.status(404).json({ error: "Apelido não encontrado." });
 
-    const user = typeof raw === "string" ? JSON.parse(raw) : raw;
+    const user = rows[0];
     if (user.pass !== Buffer.from(pass).toString("base64"))
       return res.status(401).json({ error: "Senha incorreta." });
 
@@ -46,40 +59,30 @@ module.exports = async function handler(req, res) {
 
   if (action === "pending" && req.method === "GET") {
     const { adminNick, adminPass } = req.query;
-    const ok = await checkAdmin(adminNick, adminPass);
+    const ok = await checkAdmin(sql, adminNick, adminPass);
     if (!ok) return res.status(403).json({ error: "Não autorizado." });
 
-    const all = await kv.hgetall("users");
-    const pending = Object.values(all || {})
-      .map(v => (typeof v === "string" ? JSON.parse(v) : v))
-      .filter(u => u.status === "pending")
-      .map(u => ({ nick: u.nick, status: u.status }));
-
-    return res.status(200).json({ pending });
+    const rows = await sql`SELECT nick, status FROM users WHERE status = 'pending'`;
+    return res.status(200).json({ pending: rows });
   }
 
   if (action === "approve" && req.method === "POST") {
     const { adminNick, adminPass, targetNick, decision } = req.body;
-    const ok = await checkAdmin(adminNick, adminPass);
+    const ok = await checkAdmin(sql, adminNick, adminPass);
     if (!ok) return res.status(403).json({ error: "Não autorizado." });
 
-    const raw = await kv.hget("users", targetNick);
-    if (!raw) return res.status(404).json({ error: "Usuário não encontrado." });
-
-    const user = typeof raw === "string" ? JSON.parse(raw) : raw;
-    user.status = decision === "approve" ? "approved" : "rejected";
-    await kv.hset("users", { [targetNick]: JSON.stringify(user) });
-
-    return res.status(200).json({ ok: true, status: user.status });
+    const newStatus = decision === "approve" ? "approved" : "rejected";
+    await sql`UPDATE users SET status = ${newStatus} WHERE nick = ${targetNick}`;
+    return res.status(200).json({ ok: true, status: newStatus });
   }
 
   return res.status(404).json({ error: "Ação não encontrada." });
 };
 
-async function checkAdmin(nick, pass) {
+async function checkAdmin(sql, nick, pass) {
   const slug = (nick || "").trim().toLowerCase();
-  const raw  = await kv.hget("users", slug);
-  if (!raw) return false;
-  const user = typeof raw === "string" ? JSON.parse(raw) : raw;
-  return user.role === "admin" && user.pass === Buffer.from(pass).toString("base64");
+  const rows = await sql`SELECT * FROM users WHERE nick = ${slug}`;
+  if (rows.length === 0) return false;
+  const user = rows[0];
+  return user.role === "admin" && user.pass === Buffer.from(pass || "").toString("base64");
 }

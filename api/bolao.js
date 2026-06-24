@@ -1,4 +1,20 @@
-const { kv } = require("@vercel/kv");
+const { neon } = require("@neondatabase/serverless");
+
+async function getDb() {
+  const sql = neon(process.env.DATABASE_URL);
+  await sql`
+    CREATE TABLE IF NOT EXISTS palpites (
+      id SERIAL PRIMARY KEY,
+      nick TEXT NOT NULL,
+      game_id TEXT NOT NULL,
+      home_score INT NOT NULL,
+      away_score INT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(nick, game_id)
+    )
+  `;
+  return sql;
+}
 
 module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -7,50 +23,45 @@ module.exports = async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
 
   const { action } = req.query;
+  const sql = await getDb();
 
   if (action === "save" && req.method === "POST") {
     const { nick, pass, gameId, home, away } = req.body;
-    const user = await authUser(nick, pass);
+    const user = await authUser(sql, nick, pass);
     if (!user) return res.status(401).json({ error: "Não autorizado." });
     if (user.status !== "approved") return res.status(403).json({ error: "Conta aguardando aprovação." });
 
-    await kv.set(`palpite:${user.nick}:${gameId}`, JSON.stringify({ h: parseInt(home), a: parseInt(away), ts: Date.now() }));
+    await sql`
+      INSERT INTO palpites (nick, game_id, home_score, away_score)
+      VALUES (${user.nick}, ${gameId}, ${parseInt(home)}, ${parseInt(away)})
+      ON CONFLICT (nick, game_id) DO UPDATE SET home_score = ${parseInt(home)}, away_score = ${parseInt(away)}
+    `;
     return res.status(200).json({ ok: true });
   }
 
   if (action === "my" && req.method === "GET") {
     const { nick, pass } = req.query;
-    const user = await authUser(nick, pass);
+    const user = await authUser(sql, nick, pass);
     if (!user) return res.status(401).json({ error: "Não autorizado." });
 
-    const keys = await kv.keys(`palpite:${user.nick}:*`);
+    const rows = await sql`SELECT game_id, home_score, away_score FROM palpites WHERE nick = ${user.nick}`;
     const palpites = {};
-    for (const k of keys) {
-      const gameId = k.split(":").slice(2).join(":");
-      const val = await kv.get(k);
-      palpites[gameId] = typeof val === "string" ? JSON.parse(val) : val;
-    }
+    rows.forEach(r => { palpites[r.game_id] = { h: r.home_score, a: r.away_score }; });
     return res.status(200).json({ palpites });
   }
 
   if (action === "ranking" && req.method === "GET") {
     const games = await fetchGames();
-    const allUsers = await kv.hgetall("users");
-    const approved = Object.values(allUsers || {})
-      .map(v => (typeof v === "string" ? JSON.parse(v) : v))
-      .filter(u => u.status === "approved");
-
+    const allUsers = await sql`SELECT nick FROM users WHERE status = 'approved'`;
     const ranking = [];
-    for (const u of approved) {
-      const keys = await kv.keys(`palpite:${u.nick}:*`);
+
+    for (const u of allUsers) {
+      const rows = await sql`SELECT game_id, home_score, away_score FROM palpites WHERE nick = ${u.nick}`;
       let pts = 0, count = 0;
-      for (const k of keys) {
-        const gameId = k.split(":").slice(2).join(":");
-        const game = games.find(g => g.id === gameId);
+      for (const r of rows) {
+        const game = games.find(g => g.id === r.game_id);
         if (!game || game.home_score === null || game.away_score === null) continue;
-        const val = await kv.get(k);
-        const p = typeof val === "string" ? JSON.parse(val) : val;
-        pts += calcPoints(p, game);
+        pts += calcPoints({ h: r.home_score, a: r.away_score }, game);
         count++;
       }
       ranking.push({ nick: u.nick, pts, count });
@@ -74,25 +85,20 @@ function calcPoints(p, game) {
   return pts;
 }
 
-async function authUser(nick, pass) {
+async function authUser(sql, nick, pass) {
   const slug = (nick || "").trim().toLowerCase();
-  const raw = await kv.hget("users", slug);
-  if (!raw) return null;
-  const user = typeof raw === "string" ? JSON.parse(raw) : raw;
+  const rows = await sql`SELECT * FROM users WHERE nick = ${slug}`;
+  if (rows.length === 0) return null;
+  const user = rows[0];
   if (user.pass !== Buffer.from(pass || "").toString("base64")) return null;
   return user;
 }
 
 async function fetchGames() {
   try {
-    const cached = await kv.get("games_cache");
-    if (cached) {
-      const obj = typeof cached === "string" ? JSON.parse(cached) : cached;
-      if (Date.now() - obj.ts < 60000) return obj.data;
-    }
     const r = await fetch("https://worldcup26.ir/get/games");
     const json = await r.json();
-    const games = (json.games || json || []).map(g => ({
+    return (json.games || json || []).map(g => ({
       id: g.id || `${g.home}_${g.away}`,
       home: g.home_team || g.home || "",
       away: g.away_team || g.away || "",
@@ -101,8 +107,6 @@ async function fetchGames() {
       status: g.status || "scheduled",
       datetime: g.datetime || g.date || "",
     }));
-    await kv.set("games_cache", JSON.stringify({ data: games, ts: Date.now() }), { ex: 120 });
-    return games;
   } catch {
     return [];
   }
