@@ -92,10 +92,14 @@ module.exports = async function handler(req, res) {
     }
 
     if (req.method === 'GET' && action === 'ranking') {
-      const gamesRes = await fetch(`${process.env.VERCEL_URL ? 'https://' + process.env.VERCEL_URL : 'http://localhost:3000'}/api/games`);
-      const { games } = await gamesRes.json();
-
-      const finishedOrLive = games.filter(g => g.status === 'completed' || g.status === 'in_progress');
+      let finishedOrLive = [];
+      try {
+        const gamesRes = await fetch(`https://${process.env.VERCEL_URL}/api/games`);
+        if (gamesRes.ok) {
+          const { games } = await gamesRes.json();
+          finishedOrLive = (games || []).filter(g => g.status === 'completed' || g.status === 'in_progress');
+        }
+      } catch (_) {}
 
       const users = await sql`SELECT nick FROM users WHERE status = 'approved'`;
       const allPalpites = await sql`SELECT nick, game_id, home_score, away_score FROM palpites`;
@@ -118,7 +122,7 @@ module.exports = async function handler(req, res) {
           }
         }
         return { nick: u.nick, pts, count };
-      }).sort((a, b) => b.pts - a.pts || b.count - a.count);
+      }).sort((a, b) => b.pts - a.pts || b.count - a.count || a.nick.localeCompare(b.nick));
 
       return res.status(200).json({ ranking });
     }
@@ -127,8 +131,11 @@ module.exports = async function handler(req, res) {
       const { nick: targetNick } = req.query;
       if (!targetNick) return res.status(400).json({ error: 'nick obrigatório' });
 
-      const gamesRes = await fetch(`${process.env.VERCEL_URL ? 'https://' + process.env.VERCEL_URL : 'http://localhost:3000'}/api/games`);
-      const { games } = await gamesRes.json();
+      let games = [];
+      try {
+        const gamesRes = await fetch(`https://${process.env.VERCEL_URL}/api/games`);
+        if (gamesRes.ok) ({ games } = await gamesRes.json());
+      } catch (_) {}
       const gameMap = {};
       for (const g of games) gameMap[g.id] = g;
 
