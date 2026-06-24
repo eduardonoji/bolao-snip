@@ -1,4 +1,5 @@
 const { neon } = require('@neondatabase/serverless');
+const { fetchGames } = require('./_games');
 
 async function getDb() {
   const sql = neon(process.env.DATABASE_URL);
@@ -94,11 +95,8 @@ module.exports = async function handler(req, res) {
     if (req.method === 'GET' && action === 'ranking') {
       let finishedOrLive = [];
       try {
-        const gamesRes = await fetch(`https://${process.env.VERCEL_URL}/api/games`);
-        if (gamesRes.ok) {
-          const { games } = await gamesRes.json();
-          finishedOrLive = (games || []).filter(g => g.status === 'completed' || g.status === 'in_progress');
-        }
+        const games = await fetchGames();
+        finishedOrLive = games.filter(g => g.status === 'completed' || g.status === 'in_progress');
       } catch (_) {}
 
       const users = await sql`SELECT nick FROM users WHERE status = 'approved'`;
@@ -133,8 +131,7 @@ module.exports = async function handler(req, res) {
 
       let games = [];
       try {
-        const gamesRes = await fetch(`https://${process.env.VERCEL_URL}/api/games`);
-        if (gamesRes.ok) ({ games } = await gamesRes.json());
+        games = await fetchGames();
       } catch (_) {}
       const gameMap = {};
       for (const g of games) gameMap[g.id] = g;
