@@ -100,7 +100,7 @@ async function fetchGames() {
 
     const finished = g.finished === 'TRUE' || g.finished === true;
     const timeElapsed = g.time_elapsed || '';
-    const isLive = !finished && /\d/.test(timeElapsed);
+    const isLive = !finished && (/\d/.test(timeElapsed) || /^(HT|ET|PEN|AET)$/i.test(timeElapsed.trim()));
 
     let status = 'scheduled';
     if (finished) status = 'completed';

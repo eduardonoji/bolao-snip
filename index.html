@@ -923,7 +923,8 @@ function renderGameCard(g) {
   }
 
   let palpiteHtml = '';
-  if (g.status === 'scheduled') {
+  const gameOpen = g.status === 'scheduled' && (!g.datetime || new Date() < new Date(g.datetime));
+  if (gameOpen) {
     palpiteHtml = `
       <div class="palpite-area">
         <div class="score-inputs">
