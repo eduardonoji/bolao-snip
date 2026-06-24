@@ -910,7 +910,8 @@ function renderGameCard(g) {
 
   let badgeHtml;
   if (g.status === 'in_progress') {
-    badgeHtml = `<span class="badge badge-live">Ao vivo ${g.timeElapsed || ''}</span>`;
+    const elapsed = /^live$/i.test(g.timeElapsed) ? '' : (g.timeElapsed || '');
+    badgeHtml = `<span class="badge badge-live">Ao vivo${elapsed ? ' ' + elapsed : ''}</span>`;
   } else if (g.status === 'completed') {
     badgeHtml = `<span class="badge badge-done">Encerrado</span>`;
   } else {
