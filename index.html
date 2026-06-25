@@ -149,7 +149,35 @@
     }
     .btn-approve { background: var(--green); color: #fff; }
     .btn-reject { background: var(--red-bg); color: var(--red-text); border: 1px solid var(--red); }
-    .btn-delete { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
+    .btn-delete { background: var(--red); color: #fff; border: none; }
+
+    .confirm-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.65);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+      padding: 24px;
+    }
+    .confirm-overlay.open { opacity: 1; pointer-events: all; }
+    .confirm-box {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      width: 100%;
+      max-width: 340px;
+      text-align: center;
+    }
+    .confirm-box h3 { margin: 0 0 8px; font-size: 17px; color: var(--text-primary); }
+    .confirm-box p { margin: 0 0 20px; font-size: 14px; color: var(--text-secondary); line-height: 1.5; }
+    .confirm-box .confirm-btns { display: flex; gap: 10px; }
+    .confirm-box .confirm-btns button { flex: 1; }
 
     .error-msg {
       background: var(--red-bg);
@@ -774,6 +802,17 @@
 
 <!-- PROFILE SHEET -->
 <div class="sheet-overlay" id="sheet-overlay" onclick="closeProfile()"></div>
+
+<div class="confirm-overlay" id="confirm-overlay">
+  <div class="confirm-box">
+    <h3>🗑️ Excluir conta</h3>
+    <p id="confirm-msg"></p>
+    <div class="confirm-btns">
+      <button class="btn" style="background:var(--bg-card);color:var(--text-primary);border:1px solid var(--border)" onclick="closeConfirmModal()">Cancelar</button>
+      <button class="btn btn-delete" onclick="confirmDeleteUser()">Excluir</button>
+    </div>
+  </div>
+</div>
 <div class="sheet" id="profile-sheet">
   <div class="sheet-handle"></div>
   <div class="sheet-header">
@@ -1396,8 +1435,24 @@ async function adminResetPassword(targetNick) {
   }
 }
 
-async function adminDeleteUser(targetNick) {
-  if (!confirm(`Excluir a conta de "${targetNick}"? Todas as apostas serão removidas. Esta ação não pode ser desfeita.`)) return;
+let _deleteTarget = null;
+
+function adminDeleteUser(targetNick) {
+  _deleteTarget = targetNick;
+  document.getElementById('confirm-msg').textContent =
+    `Tem certeza que deseja excluir a conta de "${targetNick}"? Todas as apostas serão removidas e essa ação não pode ser desfeita.`;
+  document.getElementById('confirm-overlay').classList.add('open');
+}
+
+function closeConfirmModal() {
+  _deleteTarget = null;
+  document.getElementById('confirm-overlay').classList.remove('open');
+}
+
+async function confirmDeleteUser() {
+  const targetNick = _deleteTarget;
+  if (!targetNick) return;
+  closeConfirmModal();
   try {
     const r = await fetch('/api/auth?action=delete', {
       method: 'POST',
