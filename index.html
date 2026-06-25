@@ -1290,9 +1290,12 @@ function closeThiagotronModal() {
 }
 
 async function thiagotronBetAll() {
-  const openGames = (gamesCache || []).filter(g =>
-    g.status === 'scheduled' && (!g.datetime || new Date() < new Date(g.datetime)) && !myPalpitesCache[g.id]
-  );
+  const { start, end } = getWindowBounds();
+  const openGames = (gamesCache || []).filter(g => {
+    if (!g.datetime) return false;
+    const d = new Date(g.datetime);
+    return d >= start && d < end && g.status === 'scheduled' && new Date() < d && !myPalpitesCache[g.id];
+  });
   if (!openGames.length) {
     document.getElementById('thiagotron-progress').textContent = 'Nenhum jogo aberto sem palpite.';
     return;
