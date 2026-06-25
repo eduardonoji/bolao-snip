@@ -215,16 +215,16 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 10px 4px 12px;
+      padding: 12px 4px 18px;
       cursor: pointer;
       color: var(--text-muted);
-      font-size: 11px;
-      gap: 4px;
+      font-size: 12px;
+      gap: 5px;
       border: none;
       background: transparent;
       -webkit-appearance: none;
     }
-    .nav-item i { font-size: 22px; }
+    .nav-item .nav-emoji { font-size: 26px; line-height: 1; }
     .nav-item.active { color: var(--blue); }
     .nav-item:active { opacity: 0.6; }
 
@@ -426,11 +426,11 @@
       padding: 14px 16px;
       margin-bottom: 10px;
       display: flex;
-      align-items: center;
-      gap: 12px;
+      flex-direction: column;
+      gap: 10px;
     }
-    .admin-nick { flex: 1; font-size: 15px; font-weight: 600; }
-    .admin-actions { display: flex; gap: 8px; flex-shrink: 0; }
+    .admin-nick { font-size: 15px; font-weight: 600; }
+    .admin-actions { display: flex; gap: 8px; justify-content: flex-end; }
 
     .spinner {
       text-align: center;
@@ -748,23 +748,23 @@
     <!-- Bottom Nav -->
     <nav class="bottom-nav">
       <button class="nav-item active" onclick="switchTab('games', this)">
-        <i class="ti ti-ball-football"></i>
+        <span class="nav-emoji">⚽</span>
         <span>Jogos</span>
       </button>
       <button class="nav-item" onclick="switchTab('ranking', this)">
-        <i class="ti ti-trophy"></i>
+        <span class="nav-emoji">🏆</span>
         <span>Ranking</span>
       </button>
       <button class="nav-item" onclick="switchTab('rules', this)">
-        <i class="ti ti-info-circle"></i>
+        <span class="nav-emoji">📋</span>
         <span>Regras</span>
       </button>
       <button class="nav-item" onclick="switchTab('conta', this)">
-        <i class="ti ti-user-circle"></i>
+        <span class="nav-emoji">👤</span>
         <span>Conta</span>
       </button>
       <button id="nav-admin" class="nav-item" onclick="switchTab('admin', this)" style="display:none">
-        <i class="ti ti-shield-check"></i>
+        <span class="nav-emoji">🛡️</span>
         <span>Admin</span>
       </button>
     </nav>
