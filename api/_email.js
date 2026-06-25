@@ -15,8 +15,6 @@ async function getGmailAccessToken() {
 }
 
 async function sendEmail(to, subject, html) {
-  console.log(`[email] tentando enviar para ${to} | subject: ${subject}`);
-  console.log(`[email] vars: REFRESH=${!!process.env.GMAIL_REFRESH_TOKEN} CLIENT_ID=${!!process.env.GOOGLE_CLIENT_ID} SECRET=${!!process.env.GOOGLE_CLIENT_SECRET} ADMIN=${process.env.ADMIN_EMAIL}`);
   if (!process.env.GMAIL_REFRESH_TOKEN) {
     console.log(`[email] GMAIL_REFRESH_TOKEN não configurado — e-mail para ${to} ignorado`);
     return false;
@@ -24,7 +22,6 @@ async function sendEmail(to, subject, html) {
   try {
     const from = `Bolão Snip <${process.env.ADMIN_EMAIL || 'me'}>`;
     const accessToken = await getGmailAccessToken();
-    console.log(`[email] access token obtido, enviando...`);
     const raw = Buffer.from(
       `From: ${from}\r\n` +
       `To: ${to}\r\n` +
