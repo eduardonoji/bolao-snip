@@ -77,6 +77,8 @@ function buildReminderEmail(nick, triggerGame, otherMissingGames) {
 
 module.exports = async function handler(req, res) {
   const auth = req.headers.authorization;
+  console.log('[cron] auth header:', auth ? auth.substring(0, 20) + '...' : 'ausente');
+  console.log('[cron] CRON_SECRET definido:', !!process.env.CRON_SECRET);
   if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return res.status(401).json({ error: 'Não autorizado' });
   }
