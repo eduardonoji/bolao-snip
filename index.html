@@ -693,7 +693,6 @@
   </div>
 
   <!-- MAIN SCREEN -->
-  <img id="boneco-ranking" src="/boneco.png" alt="" style="display:none;position:fixed;bottom:68px;right:0;width:25vw;max-width:160px;z-index:0;pointer-events:none;opacity:0.9;">
 
   <div id="screen-main" class="screen">
     <div class="topbar">
@@ -701,7 +700,7 @@
         <img src="/avatar.png" class="topbar-avatar" alt="">
         <div class="topbar-title">Bolão Snip - 2026</div>
       </div>
-      <button class="logout-btn" onclick="doLogout()"><i class="ti ti-door-exit"></i> Sair</button>
+      <button class="logout-btn" onclick="doLogout()"><i class="ti ti-logout"></i> Sair</button>
     </div>
 
     <!-- Games Tab -->
@@ -982,9 +981,6 @@ function switchTab(name, btn) {
 
   document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-
-  const boneco = document.getElementById('boneco-ranking');
-  if (boneco) boneco.style.display = name === 'ranking' ? 'block' : 'none';
 
   if (name === 'ranking') loadRanking();
   if (name === 'conta') loadContaTab();
