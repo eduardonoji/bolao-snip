@@ -851,8 +851,8 @@ function getWindowBounds() {
   const manausNow = new Date(now.getTime() - 4 * 60 * 60 * 1000);
   const h = manausNow.getUTCHours();
 
-  // 06:00 Manaus = 10:00 UTC
-  const start = new Date(now);
+  // 06:00 Manaus = 10:00 UTC — usar manausNow como base para evitar virada de dia UTC
+  const start = new Date(manausNow);
   start.setUTCHours(10, 0, 0, 0);
   if (h < 6) start.setUTCDate(start.getUTCDate() - 1);
 
@@ -906,7 +906,12 @@ function renderGames() {
     return;
   }
 
-  todayGames.sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
+  todayGames.sort((a, b) => {
+    const aComp = a.status === 'completed' ? 1 : 0;
+    const bComp = b.status === 'completed' ? 1 : 0;
+    if (aComp !== bComp) return aComp - bComp;
+    return new Date(a.datetime) - new Date(b.datetime);
+  });
   list.innerHTML = todayGames.map(g => renderGameCard(g)).join('');
 }
 
