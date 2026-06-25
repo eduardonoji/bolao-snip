@@ -555,6 +555,38 @@
     .reason-errou { background: var(--gray-bg); color: var(--gray-text); }
     .reason-aguardando { background: var(--gray-bg); color: var(--text-muted); }
 
+    /* Conta */
+    .success-msg {
+      background: var(--green-bg);
+      color: var(--green-text);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 13px;
+      margin-top: 12px;
+      display: none;
+    }
+    .success-msg.visible { display: block; }
+    .checkbox-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      cursor: pointer;
+      padding: 4px 0;
+    }
+    .checkbox-row input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--blue);
+      cursor: pointer;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .checkbox-row span {
+      font-size: 14px;
+      color: var(--text-primary);
+      line-height: 1.4;
+    }
+
     /* Logout */
     .logout-btn {
       background: transparent;
@@ -673,6 +705,38 @@
       </div>
     </div>
 
+    <!-- Conta Tab -->
+    <div id="tab-conta" class="tab-panel" style="display:none">
+      <div class="section-title">Minha Conta</div>
+      <div class="auth-card">
+        <div class="form-group">
+          <label class="form-label">Nick</label>
+          <input id="conta-nick" class="form-input" type="text" autocomplete="username" placeholder="seu nick">
+        </div>
+        <div class="form-group">
+          <label class="form-label">E-mail <span style="color:var(--text-muted);font-weight:400">(para lembretes de aposta)</span></label>
+          <input id="conta-email" class="form-input" type="email" autocomplete="email" placeholder="seu@email.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nova senha <span style="color:var(--text-muted);font-weight:400">(deixe em branco para não alterar)</span></label>
+          <input id="conta-new-pass" class="form-input" type="password" autocomplete="new-password" placeholder="••••••">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Confirmar nova senha</label>
+          <input id="conta-confirm-pass" class="form-input" type="password" autocomplete="new-password" placeholder="••••••">
+        </div>
+        <div class="form-group">
+          <label class="checkbox-row">
+            <input id="conta-reminders" type="checkbox">
+            <span>Quero receber e-mails de lembrete de aposta</span>
+          </label>
+        </div>
+        <button id="btn-conta-save" class="btn btn-primary" onclick="saveProfile()">Salvar alterações</button>
+        <div id="conta-success" class="success-msg"></div>
+        <div id="conta-error" class="error-msg"></div>
+      </div>
+    </div>
+
     <!-- Admin Tab -->
     <div id="tab-admin" class="tab-panel" style="display:none">
       <div class="section-title">Pendentes</div>
@@ -694,6 +758,10 @@
       <button class="nav-item" onclick="switchTab('rules', this)">
         <i class="ti ti-info-circle"></i>
         <span>Regras</span>
+      </button>
+      <button class="nav-item" onclick="switchTab('conta', this)">
+        <i class="ti ti-user-circle"></i>
+        <span>Conta</span>
       </button>
       <button id="nav-admin" class="nav-item" onclick="switchTab('admin', this)" style="display:none">
         <i class="ti ti-shield-check"></i>
@@ -798,7 +866,7 @@ async function doRegister() {
 }
 
 function afterAuth(data, pass) {
-  session = { nick: data.nick, pass, status: data.status, role: data.role };
+  session = { nick: data.nick, pass, status: data.status, role: data.role, email: data.email || null, email_reminders: data.email_reminders !== false };
   sessionStorage.setItem('session', JSON.stringify(session));
   if (data.status === 'pending') {
     showScreen('pending');
@@ -868,6 +936,7 @@ function switchTab(name, btn) {
   if (boneco) boneco.style.display = name === 'ranking' ? 'block' : 'none';
 
   if (name === 'ranking') loadRanking();
+  if (name === 'conta') loadContaTab();
   if (name === 'admin') loadAdminPending();
 }
 
@@ -1148,6 +1217,78 @@ function renderProfile(data) {
   });
 
   document.getElementById('sheet-body').innerHTML = rows.join('');
+}
+
+// ---- CONTA ----
+function loadContaTab() {
+  document.getElementById('conta-nick').value = session.nick;
+  document.getElementById('conta-email').value = session.email || '';
+  document.getElementById('conta-reminders').checked = session.email_reminders !== false;
+  document.getElementById('conta-new-pass').value = '';
+  document.getElementById('conta-confirm-pass').value = '';
+  document.getElementById('conta-error').classList.remove('visible');
+  const suc = document.getElementById('conta-success');
+  suc.classList.remove('visible');
+  suc.style.display = 'none';
+}
+
+async function saveProfile() {
+  const newNick = document.getElementById('conta-nick').value.trim();
+  const newEmail = document.getElementById('conta-email').value.trim();
+  const newPass = document.getElementById('conta-new-pass').value;
+  const confirmPass = document.getElementById('conta-confirm-pass').value;
+  const emailReminders = document.getElementById('conta-reminders').checked;
+
+  const errEl = document.getElementById('conta-error');
+  errEl.classList.remove('visible');
+
+  if (!newNick || newNick.length < 2) {
+    errEl.textContent = 'Nick muito curto (mínimo 2 caracteres).';
+    errEl.classList.add('visible');
+    return;
+  }
+  if (newPass && newPass !== confirmPass) {
+    errEl.textContent = 'As senhas não coincidem.';
+    errEl.classList.add('visible');
+    return;
+  }
+
+  setButtonLoading('btn-conta-save', true, 'Salvar alterações');
+  try {
+    const r = await fetch('/api/auth?action=update-profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nick: session.nick,
+        pass: session.pass,
+        newNick: newNick !== session.nick ? newNick : undefined,
+        newEmail: newEmail || null,
+        newPass: newPass || undefined,
+        emailReminders,
+      })
+    });
+    const data = await r.json();
+    if (!r.ok) {
+      errEl.textContent = data.error || 'Erro ao salvar.';
+      errEl.classList.add('visible');
+      return;
+    }
+    session.nick = data.nick;
+    if (newPass) session.pass = newPass;
+    session.email = data.email;
+    session.email_reminders = data.email_reminders;
+    sessionStorage.setItem('session', JSON.stringify(session));
+
+    const suc = document.getElementById('conta-success');
+    suc.textContent = 'Alterações salvas com sucesso!';
+    suc.style.display = 'block';
+    suc.classList.add('visible');
+  } catch (e) {
+    errEl.textContent = 'Erro de conexão.';
+    errEl.classList.add('visible');
+  } finally {
+    setButtonLoading('btn-conta-save', false, 'Salvar alterações');
+  }
 }
 
 // ---- ADMIN ----

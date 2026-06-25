@@ -120,7 +120,7 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ ok: true, message: 'Nenhum jogo na janela de lembrete agora.' });
     }
 
-    const users = await sql`SELECT nick, email FROM users WHERE status = 'approved' AND email IS NOT NULL AND email != ''`;
+    const users = await sql`SELECT nick, email FROM users WHERE status = 'approved' AND email IS NOT NULL AND email != '' AND email_reminders IS NOT FALSE`;
     if (!users.length) {
       return res.status(200).json({ ok: true, message: 'Nenhum usuário com e-mail.' });
     }

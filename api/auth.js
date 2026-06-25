@@ -17,8 +17,11 @@ async function getDb() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     )
   `;
-  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT`.catch(() => {});
-  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS approval_token TEXT`.catch(() => {});
+  await Promise.all([
+    sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT`.catch(() => {}),
+    sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS approval_token TEXT`.catch(() => {}),
+    sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS email_reminders BOOLEAN DEFAULT TRUE`.catch(() => {}),
+  ]);
   return sql;
 }
 
@@ -68,9 +71,37 @@ module.exports = async function handler(req, res) {
       const { nick, pass } = req.body;
       if (!nick || !pass) return res.status(400).json({ error: 'nick e pass obrigatórios' });
       const encoded = Buffer.from(pass).toString('base64');
-      const rows = await sql`SELECT nick, status, role FROM users WHERE nick = ${nick} AND pass = ${encoded}`;
+      const rows = await sql`SELECT nick, status, role, email, email_reminders FROM users WHERE nick = ${nick} AND pass = ${encoded}`;
       if (!rows.length) return res.status(401).json({ error: 'Nick ou senha incorretos' });
       return res.status(200).json(rows[0]);
+    }
+
+    if (req.method === 'POST' && action === 'update-profile') {
+      const { nick, pass, newNick, newEmail, newPass, emailReminders } = req.body;
+      if (!nick || !pass) return res.status(400).json({ error: 'nick e pass obrigatórios' });
+      const encoded = Buffer.from(pass).toString('base64');
+      const rows = await sql`SELECT nick FROM users WHERE nick = ${nick} AND pass = ${encoded}`;
+      if (!rows.length) return res.status(401).json({ error: 'Senha atual incorreta' });
+
+      const finalNick = (newNick && newNick.trim().length >= 2) ? newNick.trim() : nick;
+      const finalEmail = newEmail && newEmail.includes('@') ? newEmail.trim().toLowerCase() : null;
+      const finalReminders = emailReminders !== false;
+
+      if (finalNick !== nick) {
+        const conflict = await sql`SELECT 1 FROM users WHERE nick = ${finalNick}`;
+        if (conflict.length) return res.status(409).json({ error: 'Nick já em uso' });
+        await sql`UPDATE palpites SET nick = ${finalNick} WHERE nick = ${nick}`;
+        await sql`UPDATE reminders SET nick = ${finalNick} WHERE nick = ${nick}`.catch(() => {});
+      }
+
+      if (newPass) {
+        const newEncoded = Buffer.from(newPass).toString('base64');
+        await sql`UPDATE users SET nick = ${finalNick}, email = ${finalEmail}, pass = ${newEncoded}, email_reminders = ${finalReminders} WHERE nick = ${nick}`;
+      } else {
+        await sql`UPDATE users SET nick = ${finalNick}, email = ${finalEmail}, email_reminders = ${finalReminders} WHERE nick = ${nick}`;
+      }
+
+      return res.status(200).json({ ok: true, nick: finalNick, email: finalEmail, email_reminders: finalReminders });
     }
 
     // Verificar status atual (polling na tela pendente)
