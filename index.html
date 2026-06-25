@@ -285,6 +285,88 @@
       margin-top: 4px;
     }
 
+    .games-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 44px;
+      margin-bottom: 12px;
+      margin-top: 4px;
+    }
+    .games-header .section-title { margin: 0; }
+    .thiagotron-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid #7c3aed;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 0 0 0 rgba(124,58,237,0);
+    }
+    .thiagotron-avatar:hover {
+      transform: scale(1.08);
+      box-shadow: 0 0 12px rgba(124,58,237,0.6);
+    }
+
+    .thiagotron-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      z-index: 300;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .thiagotron-overlay.open { opacity: 1; pointer-events: all; }
+    .thiagotron-modal {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 24px;
+      width: 100%;
+      max-width: 360px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    .thiagotron-modal img {
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid #7c3aed;
+      box-shadow: 0 0 20px rgba(124,58,237,0.4);
+    }
+    .thiagotron-modal h3 {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text-primary);
+      margin: 0;
+    }
+    .thiagotron-modal p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      margin: 0;
+      text-align: left;
+    }
+    .thiagotron-modal .modal-btns { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+    .btn-thiagotron {
+      background: linear-gradient(135deg, #7c3aed, #4f46e5);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+    }
+    .btn-thiagotron:disabled { opacity: 0.6; cursor: default; }
+    .thiagotron-progress { font-size: 13px; color: var(--text-muted); min-height: 18px; }
+
     .game-card {
       background: var(--bg-card);
       border-radius: 14px;
@@ -724,8 +806,27 @@
 
     <!-- Games Tab -->
     <div id="tab-games" class="tab-panel active">
-      <div class="section-title" id="games-section-title">Jogos de Hoje</div>
+      <div class="games-header">
+        <div class="section-title" id="games-section-title">Jogos de Hoje</div>
+        <img src="/thiagotron.png" class="thiagotron-avatar" alt="Thiagotron" onclick="openThiagotronModal()">
+      </div>
       <div id="games-list"><div class="spinner">Carregando jogos...</div></div>
+    </div>
+
+    <!-- Modal Thiagotron -->
+    <div class="thiagotron-overlay" id="thiagotron-overlay" onclick="if(event.target===this)closeThiagotronModal()">
+      <div class="thiagotron-modal">
+        <img src="/thiagotron.png" alt="Thiagotron">
+        <h3>Thiagotron</h3>
+        <p>Enquanto a maioria aposta na sorte, eu aposto em dados.<br><br>
+        Analiso centenas de informações em segundos para encontrar as melhores oportunidades do dia. Com uma taxa histórica de acerto de 80%, posso gerar suas sugestões de apostas com apenas um clique.<br><br>
+        Mas lembre-se: mesmo a melhor inteligência artificial não pode prever o futuro. Aposte com responsabilidade e utilize minhas análises como uma vantagem estratégica.</p>
+        <div class="thiagotron-progress" id="thiagotron-progress"></div>
+        <div class="modal-btns">
+          <button class="btn btn-thiagotron" id="btn-manda-ver" onclick="thiagotronBetAll()">Manda ver Thiagotron!</button>
+          <button class="btn btn-sm" style="background:var(--bg-input);color:var(--text-secondary);width:100%;padding:12px" onclick="closeThiagotronModal()">Fechar</button>
+        </div>
+      </div>
     </div>
 
     <!-- Ranking Tab -->
@@ -1174,6 +1275,59 @@ async function savePalpite(gameId) {
   } catch (e) {
     alert('Erro de conexão.');
   }
+}
+
+function openThiagotronModal() {
+  document.getElementById('thiagotron-overlay').classList.add('open');
+  document.getElementById('thiagotron-progress').textContent = '';
+  const btn = document.getElementById('btn-manda-ver');
+  btn.disabled = false;
+  btn.textContent = 'Manda ver Thiagotron!';
+}
+
+function closeThiagotronModal() {
+  document.getElementById('thiagotron-overlay').classList.remove('open');
+}
+
+async function thiagotronBetAll() {
+  const openGames = (gamesCache || []).filter(g =>
+    g.status === 'scheduled' && (!g.datetime || new Date() < new Date(g.datetime)) && !myPalpitesCache[g.id]
+  );
+  if (!openGames.length) {
+    document.getElementById('thiagotron-progress').textContent = 'Nenhum jogo aberto sem palpite.';
+    return;
+  }
+
+  const btn = document.getElementById('btn-manda-ver');
+  const prog = document.getElementById('thiagotron-progress');
+  btn.disabled = true;
+
+  for (let i = 0; i < openGames.length; i++) {
+    const g = openGames[i];
+    prog.textContent = `Analisando ${i + 1}/${openGames.length}: ${g.home} × ${g.away}…`;
+    try {
+      const r = await fetch('/api/ai-bet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ home: g.home, away: g.away })
+      });
+      const data = await r.json();
+      if (!r.ok) { prog.textContent = `Erro em ${g.home} × ${g.away}: ${data.error}`; continue; }
+
+      await fetch('/api/bolao?action=save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nick: session.nick, pass: session.pass, gameId: g.id, home: data.home, away: data.away })
+      });
+      myPalpitesCache[g.id] = { h: data.home, a: data.away };
+    } catch (e) {
+      prog.textContent = `Erro de conexão em ${g.home} × ${g.away}.`;
+    }
+  }
+
+  prog.textContent = `Pronto! ${openGames.length} palpite(s) registrado(s).`;
+  btn.textContent = 'Concluído!';
+  renderGames();
 }
 
 async function betWithAI(gameId) {
