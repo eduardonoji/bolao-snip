@@ -41,8 +41,9 @@ function buildReminderEmail(nick, triggerGame, otherMissingGames) {
     <table style="width:100%;border-collapse:collapse">${otherRows}</table>` : '';
 
   const appUrl = process.env.APP_URL || 'https://bolao-snip.vercel.app';
+  const totalJogos = 1 + otherMissingGames.length;
   return {
-    subject: `⚽ Bolão Snip – Falta menos de 1h! ${triggerGame.home} × ${triggerGame.away}`,
+    subject: `⚽ Bolão Snip – Aposte nos jogos de hoje, ${nick}!`,
     html: `<!DOCTYPE html>
 <html>
 <body style="margin:0;padding:0;background:#0f0f0f">
@@ -54,7 +55,7 @@ function buildReminderEmail(nick, triggerGame, otherMissingGames) {
     <div style="background:#1a1a1a;border-radius:14px;padding:24px;border:1px solid rgba(255,255,255,0.08)">
       <p style="margin:0 0 8px;font-size:18px;font-weight:700;color:#f0f0f0">Opa, ${nick}! 👋</p>
       <p style="margin:0 0 16px;font-size:14px;color:#999;line-height:1.5">
-        Falta menos de 1 hora para o jogo começar e você ainda não apostou:
+        Hoje tem <strong style="color:#f0f0f0">${totalJogos} jogo${totalJogos > 1 ? 's' : ''}</strong> e você ainda não fez ${totalJogos > 1 ? 'seus palpites' : 'seu palpite'}. Não perca pontos!
       </p>
       <table style="width:100%;border-collapse:collapse">${triggerRow}</table>
       ${otherSection}
@@ -75,37 +76,6 @@ function buildReminderEmail(nick, triggerGame, otherMissingGames) {
 }
 
 module.exports = async function handler(req, res) {
-  // Endpoint de teste temporário: ?action=test&nick=X&pass=X
-  if (req.method === 'GET' && req.query.action === 'test') {
-    const { nick, pass } = req.query;
-    if (!nick || !pass) return res.status(400).json({ error: 'nick e pass obrigatórios' });
-    const sqlTest = neon(process.env.DATABASE_URL);
-    const encoded = Buffer.from(pass).toString('base64');
-    const userRows = await sqlTest`SELECT nick, email FROM users WHERE nick = ${nick} AND pass = ${encoded} AND status = 'approved'`;
-    if (!userRows.length) return res.status(401).json({ error: 'Credenciais inválidas' });
-    const user = userRows[0];
-    if (!user.email) return res.status(400).json({ error: 'Sem e-mail cadastrado' });
-
-    const games = await fetchGames();
-    const { start, end } = getWindowBoundsUTC();
-    const todayScheduled = games
-      .filter(g => g.datetime && g.status === 'scheduled' && new Date(g.datetime) >= start && new Date(g.datetime) < end)
-      .sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
-
-    if (!todayScheduled.length) return res.status(200).json({ ok: false, message: 'Nenhum jogo agendado hoje.' });
-
-    const gameIds = todayScheduled.map(g => g.id);
-    const palpites = await sqlTest`SELECT game_id FROM palpites WHERE nick = ${nick} AND game_id = ANY(${gameIds})`;
-    const betSet = new Set(palpites.map(p => p.game_id));
-    const missing = todayScheduled.filter(g => !betSet.has(g.id));
-
-    if (!missing.length) return res.status(200).json({ ok: false, message: 'Você já apostou em todos os jogos de hoje.' });
-
-    const { subject, html } = buildReminderEmail(user.nick, missing[0], missing.slice(1));
-    const ok = await sendEmail(user.email, subject, html);
-    return res.status(200).json({ ok, to: user.email, jogos: missing.length });
-  }
-
   const auth = req.headers.authorization;
   if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return res.status(401).json({ error: 'Não autorizado' });
