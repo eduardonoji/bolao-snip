@@ -173,6 +173,22 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ ok: true });
     }
 
+    if (req.method === 'POST' && action === 'reset-password') {
+      const { adminNick, adminPass, targetNick, newPass } = req.body;
+      if (!targetNick || !newPass) return res.status(400).json({ error: 'targetNick e newPass obrigatórios' });
+      const encoded = Buffer.from(adminPass || '').toString('base64');
+      const adminRows = await sql`SELECT role FROM users WHERE nick = ${adminNick} AND pass = ${encoded}`;
+      if (!adminRows.length || adminRows[0].role !== 'admin') {
+        return res.status(403).json({ error: 'Acesso negado' });
+      }
+      if (targetNick === ADMIN_NICK) return res.status(400).json({ error: 'Não é possível resetar a senha do admin' });
+      const targetRows = await sql`SELECT 1 FROM users WHERE nick = ${targetNick}`;
+      if (!targetRows.length) return res.status(404).json({ error: 'Usuário não encontrado' });
+      const newEncoded = Buffer.from(newPass).toString('base64');
+      await sql`UPDATE users SET pass = ${newEncoded} WHERE nick = ${targetNick}`;
+      return res.status(200).json({ ok: true });
+    }
+
     if (req.method === 'POST' && action === 'delete') {
       const { adminNick, adminPass, targetNick } = req.body;
       if (!targetNick) return res.status(400).json({ error: 'targetNick obrigatório' });

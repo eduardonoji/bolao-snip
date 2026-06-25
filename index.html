@@ -1348,6 +1348,7 @@ function renderAdminAll(users) {
       </div>
       ${u.role !== 'admin' ? `
       <div class="admin-actions">
+        <button class="btn btn-sm" style="background:rgba(251,191,36,0.15);color:#fbbf24" onclick="adminResetPassword('${u.nick}')">Resetar senha</button>
         <button class="btn btn-sm btn-delete" onclick="adminDeleteUser('${u.nick}')">Excluir</button>
       </div>` : ''}
     </div>
@@ -1368,6 +1369,27 @@ async function adminDecide(targetNick, decision) {
     } else {
       const d = await r.json();
       alert(d.error || 'Erro ao processar.');
+    }
+  } catch (e) {
+    alert('Erro de conexão.');
+  }
+}
+
+async function adminResetPassword(targetNick) {
+  const newPass = prompt(`Nova senha para "${targetNick}":`);
+  if (!newPass || !newPass.trim()) return;
+  if (newPass.trim().length < 4) { alert('Senha muito curta (mínimo 4 caracteres).'); return; }
+  try {
+    const r = await fetch('/api/auth?action=reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ adminNick: session.nick, adminPass: session.pass, targetNick, newPass: newPass.trim() })
+    });
+    if (r.ok) {
+      alert(`Senha de "${targetNick}" redefinida com sucesso.`);
+    } else {
+      const d = await r.json();
+      alert(d.error || 'Erro ao resetar senha.');
     }
   } catch (e) {
     alert('Erro de conexão.');
