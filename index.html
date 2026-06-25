@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Bolão Snip - 2026</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.x/tabler-icons.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -700,7 +701,7 @@
         <img src="/avatar.png" class="topbar-avatar" alt="">
         <div class="topbar-title">Bolão Snip - 2026</div>
       </div>
-      <button class="logout-btn" onclick="doLogout()"><i class="ti ti-logout"></i> Sair</button>
+      <button class="logout-btn" onclick="doLogout()">🚪 Sair</button>
     </div>
 
     <!-- Games Tab -->
@@ -711,8 +712,16 @@
 
     <!-- Ranking Tab -->
     <div id="tab-ranking" class="tab-panel">
-      <div class="section-title">Classificação</div>
-      <div id="ranking-list"><div class="spinner">Carregando...</div></div>
+      <div id="ranking-capture" style="background:var(--bg-primary);border-radius:12px;padding:4px 0 8px">
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 4px 12px">
+          <img src="/avatar.png" style="width:28px;height:28px;border-radius:50%;object-fit:cover;object-position:center top;flex-shrink:0">
+          <span style="font-size:14px;font-weight:700;color:var(--text-primary)">Bolão Snip · Classificação</span>
+        </div>
+        <div id="ranking-list"><div class="spinner">Carregando...</div></div>
+      </div>
+      <button class="btn" onclick="shareRanking()" style="margin-top:16px;background:rgba(34,197,94,0.15);color:#4ade80;font-size:14px;display:flex;align-items:center;justify-content:center;gap:8px">
+        📸 Compartilhar ranking
+      </button>
     </div>
 
     <!-- Rules Tab -->
@@ -1476,6 +1485,33 @@ async function confirmDeleteUser() {
     }
   } catch (e) {
     alert('Erro de conexão.');
+  }
+}
+
+// ---- SHARE RANKING ----
+async function shareRanking() {
+  const el = document.getElementById('ranking-capture');
+  if (!el || typeof html2canvas === 'undefined') return;
+  try {
+    const canvas = await html2canvas(el, {
+      backgroundColor: '#0f0f0f',
+      scale: 2,
+      useCORS: true,
+      logging: false,
+    });
+    canvas.toBlob(async (blob) => {
+      const file = new File([blob], 'ranking-bolao-snip.png', { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: 'Bolão Snip 2026 - Ranking' });
+      } else {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'ranking-bolao-snip.png';
+        a.click();
+      }
+    }, 'image/png');
+  } catch (e) {
+    alert('Não foi possível gerar a imagem.');
   }
 }
 
