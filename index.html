@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Bolão Snip - 2026</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.x/tabler-icons.min.css">
+  <script src="https://accounts.google.com/gsi/client" async></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -78,30 +79,11 @@
       padding: 24px 20px;
       border: 1px solid var(--border);
     }
-    .tab-row {
+    .google-signin-wrap {
       display: flex;
-      background: var(--bg-primary);
-      border-radius: 10px;
-      padding: 3px;
-      margin-bottom: 24px;
+      justify-content: center;
+      padding: 8px 0;
     }
-    .tab-btn {
-      flex: 1;
-      padding: 10px;
-      border: none;
-      background: transparent;
-      color: var(--text-secondary);
-      font-size: 14px;
-      font-weight: 600;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .tab-btn.active {
-      background: var(--bg-surface);
-      color: var(--text-primary);
-    }
-    .tab-btn:active { opacity: 0.7; }
 
     .form-group { margin-bottom: 16px; }
     .form-label {
@@ -576,42 +558,11 @@
     <div class="auth-title">Bolão Snip - 2026</div>
     <div class="auth-subtitle">Copa do Mundo 2026</div>
     <div class="auth-card">
-      <div class="tab-row">
-        <button class="tab-btn active" onclick="switchAuthTab('login')">Entrar</button>
-        <button class="tab-btn" onclick="switchAuthTab('register')">Cadastrar</button>
-      </div>
-
-      <!-- Login -->
-      <div id="auth-login">
-        <div class="form-group">
-          <label class="form-label">Nick</label>
-          <input id="login-nick" class="form-input" type="text" autocomplete="username" placeholder="seu nick">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Senha</label>
-          <input id="login-pass" class="form-input" type="password" autocomplete="current-password" placeholder="••••••">
-        </div>
-        <button id="btn-login" class="btn btn-primary" onclick="doLogin()">Entrar</button>
-        <div id="login-error" class="error-msg"></div>
-      </div>
-
-      <!-- Register -->
-      <div id="auth-register" style="display:none">
-        <div class="form-group">
-          <label class="form-label">Nick</label>
-          <input id="reg-nick" class="form-input" type="text" autocomplete="username" placeholder="escolha um nick único">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Senha</label>
-          <input id="reg-pass" class="form-input" type="password" autocomplete="new-password" placeholder="••••••">
-        </div>
-        <div class="form-group">
-          <label class="form-label">E-mail <span style="color:var(--text-muted);font-weight:400">(para lembretes de aposta)</span></label>
-          <input id="reg-email" class="form-input" type="email" autocomplete="email" placeholder="seu@email.com">
-        </div>
-        <button id="btn-register" class="btn btn-green" onclick="doRegister()">Criar conta</button>
-        <div id="reg-error" class="error-msg"></div>
-      </div>
+      <p style="text-align:center;font-size:14px;color:var(--text-secondary);margin-bottom:20px">
+        Entre com sua conta Google para participar do bolão.
+      </p>
+      <div class="google-signin-wrap" id="google-signin-btn"></div>
+      <div id="auth-error" class="error-msg" style="margin-top:16px"></div>
     </div>
   </div>
 
@@ -721,6 +672,7 @@ let session = JSON.parse(sessionStorage.getItem('session') || 'null');
 let gamesCache = null;
 let myPalpitesCache = {};
 let liveInterval = null;
+let statusPollInterval = null;
 
 // ---- SCREEN ----
 function showScreen(name) {
@@ -728,85 +680,87 @@ function showScreen(name) {
   document.getElementById('screen-' + name).classList.add('active');
 }
 
-// ---- AUTH TABS ----
-function switchAuthTab(tab) {
-  document.getElementById('auth-login').style.display = tab === 'login' ? 'block' : 'none';
-  document.getElementById('auth-register').style.display = tab === 'register' ? 'block' : 'none';
-  document.querySelectorAll('.tab-btn').forEach((b, i) => {
-    b.classList.toggle('active', (tab === 'login' && i === 0) || (tab === 'register' && i === 1));
-  });
-  document.getElementById('login-error').classList.remove('visible');
-  document.getElementById('reg-error').classList.remove('visible');
-}
-
-function showError(id, msg) {
-  const el = document.getElementById(id);
-  el.textContent = msg;
-  el.classList.add('visible');
-}
-
-function setButtonLoading(id, loading, label) {
-  const btn = document.getElementById(id);
-  btn.disabled = loading;
-  btn.textContent = loading ? 'Aguarde...' : label;
-  btn.style.opacity = loading ? '0.7' : '';
-}
-
-async function doLogin() {
-  const nick = document.getElementById('login-nick').value.trim();
-  const pass = document.getElementById('login-pass').value;
-  if (!nick || !pass) return showError('login-error', 'Preencha todos os campos.');
-  setButtonLoading('btn-login', true, 'Entrar');
+// ---- GOOGLE SIGN-IN ----
+async function initGoogleSignIn() {
   try {
-    const r = await fetch('/api/auth?action=login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nick, pass })
+    const cfg = await fetch('/api/auth?action=config').then(r => r.json());
+    if (!cfg.googleClientId) return;
+    await new Promise(resolve => {
+      if (window.google) { resolve(); return; }
+      const t = setInterval(() => { if (window.google) { clearInterval(t); resolve(); } }, 100);
     });
-    const data = await r.json();
-    if (!r.ok) { showError('login-error', data.error || 'Erro ao entrar.'); return; }
-    afterAuth(data, pass);
+    google.accounts.id.initialize({
+      client_id: cfg.googleClientId,
+      callback: handleGoogleLogin,
+      auto_select: false,
+    });
+    google.accounts.id.renderButton(
+      document.getElementById('google-signin-btn'),
+      { theme: 'filled_black', size: 'large', text: 'sign_in_with', shape: 'rectangular', logo_alignment: 'left', width: 280 }
+    );
   } catch (e) {
-    showError('login-error', 'Erro de conexão.');
-  } finally {
-    setButtonLoading('btn-login', false, 'Entrar');
+    console.error('Erro ao inicializar Google Sign-In:', e);
   }
 }
 
-async function doRegister() {
-  const nick = document.getElementById('reg-nick').value.trim();
-  const pass = document.getElementById('reg-pass').value;
-  const email = document.getElementById('reg-email').value.trim();
-  if (!nick || !pass) return showError('reg-error', 'Preencha nick e senha.');
-  if (nick.length < 2) return showError('reg-error', 'Nick muito curto (mínimo 2 caracteres).');
-  setButtonLoading('btn-register', true, 'Criar conta');
+async function handleGoogleLogin(response) {
+  const errEl = document.getElementById('auth-error');
+  errEl.classList.remove('visible');
   try {
-    const r = await fetch('/api/auth?action=register', {
+    const r = await fetch('/api/auth?action=google-login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nick, pass, email: email || null })
+      body: JSON.stringify({ idToken: response.credential }),
     });
     const data = await r.json();
-    if (!r.ok) { showError('reg-error', data.error || 'Erro ao cadastrar.'); return; }
-    afterAuth(data, pass);
+    if (!r.ok) {
+      errEl.textContent = data.error || 'Erro ao entrar.';
+      errEl.classList.add('visible');
+      return;
+    }
+    afterAuth(data);
   } catch (e) {
-    showError('reg-error', 'Erro de conexão.');
-  } finally {
-    setButtonLoading('btn-register', false, 'Criar conta');
+    errEl.textContent = 'Erro de conexão.';
+    errEl.classList.add('visible');
   }
 }
 
-function afterAuth(data, pass) {
-  session = { nick: data.nick, pass, status: data.status, role: data.role };
+function afterAuth(data) {
+  session = { nick: data.nick, token: data.token, status: data.status, role: data.role };
   sessionStorage.setItem('session', JSON.stringify(session));
   if (data.status === 'pending') {
     showScreen('pending');
+    startStatusPolling();
   } else if (data.status === 'approved') {
     enterMain();
   } else {
-    showError('login-error', 'Sua conta foi rejeitada.');
-    showError('reg-error', 'Sua conta foi rejeitada.');
+    const errEl = document.getElementById('auth-error');
+    errEl.textContent = 'Sua conta foi rejeitada.';
+    errEl.classList.add('visible');
   }
+}
+
+function startStatusPolling() {
+  stopStatusPolling();
+  statusPollInterval = setInterval(async () => {
+    if (!session) return;
+    try {
+      const r = await fetch(`/api/auth?action=status&nick=${encodeURIComponent(session.nick)}&token=${encodeURIComponent(session.token)}`);
+      if (!r.ok) return;
+      const data = await r.json();
+      if (data.status === 'approved') {
+        session.status = 'approved';
+        session.role = data.role;
+        sessionStorage.setItem('session', JSON.stringify(session));
+        stopStatusPolling();
+        enterMain();
+      }
+    } catch (_) {}
+  }, 10000);
+}
+
+function stopStatusPolling() {
+  if (statusPollInterval) { clearInterval(statusPollInterval); statusPollInterval = null; }
 }
 
 function doLogout() {
@@ -815,7 +769,9 @@ function doLogout() {
   gamesCache = null;
   myPalpitesCache = {};
   stopLiveInterval();
+  stopStatusPolling();
   showScreen('auth');
+  initGoogleSignIn();
 }
 
 // ---- MAIN ----
@@ -878,7 +834,7 @@ async function loadGames() {
   try {
     const [gRes, pRes] = await Promise.all([
       fetch('/api/games'),
-      fetch(`/api/bolao?action=my&nick=${encodeURIComponent(session.nick)}&pass=${encodeURIComponent(session.pass)}`)
+      fetch(`/api/bolao?action=my&nick=${encodeURIComponent(session.nick)}&token=${encodeURIComponent(session.token)}`)
     ]);
     const { games } = await gRes.json();
     const { palpites } = await pRes.json();
@@ -994,7 +950,7 @@ async function savePalpite(gameId) {
     const r = await fetch('/api/bolao?action=save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nick: session.nick, pass: session.pass, gameId, home: h, away: a })
+      body: JSON.stringify({ nick: session.nick, token: session.token, gameId, home: h, away: a })
     });
     const data = await r.json();
     if (!r.ok) { alert(data.error || 'Erro ao salvar.'); return; }
@@ -1129,8 +1085,8 @@ async function loadAdminPending() {
   document.getElementById('admin-all-list').innerHTML = '<div class="spinner">Carregando...</div>';
   try {
     const [pendingRes, allRes] = await Promise.all([
-      fetch(`/api/auth?action=pending&adminNick=${encodeURIComponent(session.nick)}&adminPass=${encodeURIComponent(session.pass)}`),
-      fetch(`/api/auth?action=all&adminNick=${encodeURIComponent(session.nick)}&adminPass=${encodeURIComponent(session.pass)}`)
+      fetch(`/api/auth?action=pending&adminNick=${encodeURIComponent(session.nick)}&adminToken=${encodeURIComponent(session.token)}`),
+      fetch(`/api/auth?action=all&adminNick=${encodeURIComponent(session.nick)}&adminToken=${encodeURIComponent(session.token)}`)
     ]);
     const pendingData = await pendingRes.json();
     const allData = allRes.ok ? await allRes.json() : { users: [] };
@@ -1191,7 +1147,7 @@ async function adminDecide(targetNick, decision) {
     const r = await fetch('/api/auth?action=approve', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ adminNick: session.nick, adminPass: session.pass, targetNick, decision })
+      body: JSON.stringify({ adminNick: session.nick, adminToken: session.token, targetNick, decision })
     });
     if (r.ok) {
       const card = document.getElementById('acard-' + targetNick);
@@ -1212,7 +1168,7 @@ async function adminDeleteUser(targetNick) {
     const r = await fetch('/api/auth?action=delete', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ adminNick: session.nick, adminPass: session.pass, targetNick })
+      body: JSON.stringify({ adminNick: session.nick, adminToken: session.token, targetNick })
     });
     if (r.ok) {
       const card = document.getElementById('ucard-' + targetNick);
@@ -1229,10 +1185,11 @@ async function adminDeleteUser(targetNick) {
 // ---- INIT ----
 if (session) {
   if (session.status === 'approved') enterMain();
-  else if (session.status === 'pending') showScreen('pending');
-  else showScreen('auth');
+  else if (session.status === 'pending') { showScreen('pending'); startStatusPolling(); }
+  else { showScreen('auth'); initGoogleSignIn(); }
 } else {
   showScreen('auth');
+  initGoogleSignIn();
 }
 
 // Fix: tab panels hidden by default except games
