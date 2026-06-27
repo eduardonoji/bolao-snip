@@ -747,18 +747,31 @@
     .pts-row-val { font-size: 16px; font-weight: 800; color: var(--blue-text); }
 
     /* ---- ADMIN ---- */
+    .admin-section { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; margin-bottom: 10px; overflow: hidden; }
+    .admin-section-hdr { display: flex; align-items: center; gap: 10px; padding: 14px 16px; cursor: pointer; user-select: none; }
+    .admin-section-hdr:active { background: rgba(255,255,255,0.03); }
+    .admin-section-label { flex: 1; font-size: 14px; font-weight: 700; color: var(--text-primary); }
+    .admin-section-icon { color: var(--text-muted); display: flex; flex-shrink: 0; }
+    .admin-badge { background: rgba(239,68,68,0.15); color: #f87171; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+    .admin-chevron { color: var(--text-muted); transition: transform 0.22s; display: flex; flex-shrink: 0; }
+    .admin-chevron.open { transform: rotate(180deg); }
+    .admin-section-body { padding: 0 16px 16px; }
     .admin-card {
-      background: var(--bg-card);
-      border-radius: 12px;
+      background: var(--bg-surface);
+      border-radius: 10px;
       border: 1px solid var(--border);
-      padding: 14px 16px;
-      margin-bottom: 10px;
+      padding: 12px 14px;
+      margin-bottom: 8px;
       display: flex;
       flex-direction: column;
       gap: 10px;
     }
     .admin-nick { font-size: 15px; font-weight: 600; }
-    .admin-actions { display: flex; gap: 8px; justify-content: flex-end; }
+    .admin-actions { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
+    .admin-pts-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .admin-pts-row:last-of-type { border-bottom: none; }
+    .admin-pts-label { flex: 1; font-size: 13px; color: var(--text-secondary); }
+    .admin-pts-input { width: 60px; text-align: center; padding: 8px 6px !important; font-size: 15px !important; }
 
     .spinner {
       display: flex;
@@ -1201,41 +1214,99 @@
 
     <!-- Admin Tab -->
     <div id="tab-admin" class="tab-panel" style="display:none">
-      <div class="section-title"><svg class="ti-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0"/><path d="M12 8v4l3 3"/></svg> Configurações PIX</div>
-      <div class="auth-card">
-        <div class="form-group">
-          <label class="form-label">Valor por pessoa (R$)</label>
-          <input id="pix-entry-value-input" class="form-input" type="number" min="0" step="0.01" placeholder="20.00">
+
+      <!-- Card: Pendentes -->
+      <div class="admin-section">
+        <div class="admin-section-hdr" onclick="toggleAdminSection('body-pending', this)">
+          <div class="admin-section-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6v6l4 2"/><circle cx="12" cy="12" r="10"/></svg></div>
+          <div class="admin-section-label">Aguardando liberação</div>
+          <span id="pending-badge" class="admin-badge" style="display:none"></span>
+          <div class="admin-chevron open"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></div>
         </div>
-        <div class="form-group">
-          <label class="form-label">Tipo da chave PIX</label>
-          <select id="pix-key-type" class="form-input" style="background:var(--bg-input);color:var(--text-primary)">
-            <option value="chave_aleatoria">Chave aleatória</option>
-            <option value="email">E-mail</option>
-            <option value="telefone">Telefone</option>
-            <option value="cpf">CPF</option>
-            <option value="cnpj">CNPJ</option>
-          </select>
+        <div id="body-pending" class="admin-section-body">
+          <div id="admin-pending-list"><div class="spinner">Carregando...</div></div>
         </div>
-        <div class="form-group">
-          <label class="form-label">Chave PIX</label>
-          <input id="pix-key-input" class="form-input" type="text" placeholder="sua chave pix">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Nome do recebedor <span style="color:var(--text-muted);font-weight:400">(para o QR code)</span></label>
-          <input id="pix-name-input" class="form-input" type="text" placeholder="Seu Nome">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Cidade <span style="color:var(--text-muted);font-weight:400">(para o QR code)</span></label>
-          <input id="pix-city-input" class="form-input" type="text" placeholder="Manaus">
-        </div>
-        <button class="btn btn-primary" onclick="savePixSettings()">Salvar configurações</button>
-        <div id="pix-settings-msg" style="display:none;margin-top:10px;font-size:13px;font-weight:600;text-align:center"></div>
       </div>
-      <div class="section-title" style="margin-top:4px"><svg class="ti-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0"/><path d="M12 7v5l3 3"/></svg> Pendentes</div>
-      <div id="admin-pending-list"><div class="spinner">Carregando...</div></div>
-      <div class="section-title" style="margin-top:20px"><svg class="ti-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0"/><path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0 -3 -3.85"/></svg> Todos os usuários</div>
-      <div id="admin-all-list"><div class="spinner">Carregando...</div></div>
+
+      <!-- Card: Participantes -->
+      <div class="admin-section">
+        <div class="admin-section-hdr" onclick="toggleAdminSection('body-all', this)">
+          <div class="admin-section-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.85"/></svg></div>
+          <div class="admin-section-label">Participantes</div>
+          <div class="admin-chevron open"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></div>
+        </div>
+        <div id="body-all" class="admin-section-body">
+          <div id="admin-all-list"><div class="spinner">Carregando...</div></div>
+        </div>
+      </div>
+
+      <!-- Card: Pagamento PIX -->
+      <div class="admin-section">
+        <div class="admin-section-hdr" onclick="toggleAdminSection('body-pix', this)">
+          <div class="admin-section-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"/><path d="M14.8 9a2 2 0 0 0-1.8-1h-2a2 2 0 1 0 0 4h2a2 2 0 1 0 0 4h-2a2 2 0 0 1-1.8-1"/><path d="M12 7v10"/></svg></div>
+          <div class="admin-section-label">Pagamento</div>
+          <div class="admin-chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></div>
+        </div>
+        <div id="body-pix" class="admin-section-body" style="display:none">
+          <div class="form-group">
+            <label class="form-label">Valor por pessoa (R$)</label>
+            <input id="pix-entry-value-input" class="form-input" type="number" min="0" step="0.01" placeholder="20.00">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tipo da chave PIX</label>
+            <select id="pix-key-type" class="form-input" style="background:var(--bg-input);color:var(--text-primary)">
+              <option value="chave_aleatoria">Chave aleatória</option>
+              <option value="email">E-mail</option>
+              <option value="telefone">Telefone</option>
+              <option value="cpf">CPF</option>
+              <option value="cnpj">CNPJ</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Chave PIX</label>
+            <input id="pix-key-input" class="form-input" type="text" placeholder="sua chave pix">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Nome do recebedor <span style="color:var(--text-muted);font-weight:400">(para o QR code)</span></label>
+            <input id="pix-name-input" class="form-input" type="text" placeholder="Seu Nome">
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label class="form-label">Cidade <span style="color:var(--text-muted);font-weight:400">(para o QR code)</span></label>
+            <input id="pix-city-input" class="form-input" type="text" placeholder="Manaus">
+          </div>
+          <button class="btn btn-primary" style="margin-top:16px" onclick="savePixSettings()">Salvar</button>
+          <div id="pix-settings-msg" style="display:none;margin-top:10px;font-size:13px;font-weight:600;text-align:center"></div>
+        </div>
+      </div>
+
+      <!-- Card: Pontuação -->
+      <div class="admin-section">
+        <div class="admin-section-hdr" onclick="toggleAdminSection('body-pts', this)">
+          <div class="admin-section-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17.75l-6.172 3.245 1.179-6.873-4.993-4.867 6.9-1.002 3.086-6.253 3.086 6.253 6.9 1.002-4.993 4.867 1.179 6.873z"/></svg></div>
+          <div class="admin-section-label">Pontuação</div>
+          <div class="admin-chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></div>
+        </div>
+        <div id="body-pts" class="admin-section-body" style="display:none">
+          <div class="admin-pts-row">
+            <span class="admin-pts-label">Placar exato</span>
+            <input id="pts-exact" class="form-input admin-pts-input" type="number" min="0" value="10">
+            <span style="font-size:12px;color:var(--text-muted)">pts</span>
+          </div>
+          <div class="admin-pts-row">
+            <span class="admin-pts-label">Resultado certo</span>
+            <input id="pts-result" class="form-input admin-pts-input" type="number" min="0" value="5">
+            <span style="font-size:12px;color:var(--text-muted)">pts</span>
+          </div>
+          <div class="admin-pts-row" style="border-bottom:none">
+            <span class="admin-pts-label">Gol de um time</span>
+            <input id="pts-goal" class="form-input admin-pts-input" type="number" min="0" value="2">
+            <span style="font-size:12px;color:var(--text-muted)">pts</span>
+          </div>
+          <button class="btn btn-primary" style="margin-top:16px" onclick="saveScoringSettings()">Salvar</button>
+          <div id="pts-settings-msg" style="display:none;margin-top:10px;font-size:13px;font-weight:600;text-align:center"></div>
+        </div>
+      </div>
+
     </div>
 
     </div><!-- /tab-viewport -->
@@ -1479,6 +1550,7 @@ function doLogout() {
 
 // ---- MAIN ----
 function enterMain() {
+  loadAllSettings();
   document.getElementById('nav-admin').style.display = session.role === 'admin' ? 'flex' : 'none';
   // Reset tab state para evitar resquícios de sessão anterior
   document.querySelectorAll('.tab-panel').forEach(p => { p.style.display = 'none'; p.classList.remove('active'); });
@@ -1630,11 +1702,11 @@ function getWindowBounds() {
 function calcPoints(p, game) {
   if (game.homeScore === null || game.awayScore === null) return 0;
   const ph = p.h, pa = p.a, gh = game.homeScore, ga = game.awayScore;
-  if (ph === gh && pa === ga) return 10;
+  if (ph === gh && pa === ga) return scoringPts.exact;
   const pResult = ph > pa ? 'H' : ph < pa ? 'A' : 'D';
   const gResult = gh > ga ? 'H' : gh < ga ? 'A' : 'D';
-  if (pResult === gResult) return 5;
-  if (ph === gh || pa === ga) return 2;
+  if (pResult === gResult) return scoringPts.result;
+  if (ph === gh || pa === ga) return scoringPts.goal;
   return 0;
 }
 
@@ -2213,6 +2285,14 @@ async function saveProfile() {
 }
 
 // ---- ADMIN ----
+function toggleAdminSection(id, hdr) {
+  const body = document.getElementById(id);
+  const chevron = hdr.querySelector('.admin-chevron');
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  if (chevron) chevron.classList.toggle('open', !open);
+}
+
 async function loadAdminPending() {
   document.getElementById('admin-pending-list').innerHTML = '<div class="spinner">Carregando...</div>';
   document.getElementById('admin-all-list').innerHTML = '<div class="spinner">Carregando...</div>';
@@ -2232,9 +2312,11 @@ async function loadAdminPending() {
 }
 
 function renderAdminPending(users) {
+  const badge = document.getElementById('pending-badge');
+  if (badge) { badge.textContent = users.length; badge.style.display = users.length ? '' : 'none'; }
   const el = document.getElementById('admin-pending-list');
   if (!users.length) {
-    el.innerHTML = '<div class="empty-state">Nenhum usuário pendente. ✅</div>';
+    el.innerHTML = '<div class="empty-state" style="padding:16px 0">Nenhum pendente ✅</div>';
     return;
   }
   el.innerHTML = users.map(u => `
@@ -2458,16 +2540,53 @@ async function copyPixKey() {
   setTimeout(() => { hint.textContent = 'Toque para copiar'; hint.style.color = ''; }, 2000);
 }
 
-async function loadPixSettings() {
+let scoringPts = { exact: 10, result: 5, goal: 2 };
+
+async function loadAllSettings() {
   try {
     const r = await fetch('/api/bolao?action=settings');
     const { settings } = await r.json();
-    document.getElementById('pix-entry-value-input').value = settings.entry_value || '0.01';
-    document.getElementById('pix-key-type').value = settings.pix_key_type || 'chave_aleatoria';
-    document.getElementById('pix-key-input').value = settings.pix_key || '';
-    document.getElementById('pix-name-input').value = settings.pix_name || '';
-    document.getElementById('pix-city-input').value = settings.pix_city || '';
-  } catch (_) {}
+    scoringPts = {
+      exact:  parseInt(settings.pts_exact  || '10') || 10,
+      result: parseInt(settings.pts_result || '5')  || 5,
+      goal:   parseInt(settings.pts_goal   || '2')  || 2,
+    };
+    return settings;
+  } catch (_) { return {}; }
+}
+
+async function loadPixSettings() {
+  const settings = await loadAllSettings();
+  document.getElementById('pix-entry-value-input').value = settings.entry_value || '0.01';
+  document.getElementById('pix-key-type').value = settings.pix_key_type || 'chave_aleatoria';
+  document.getElementById('pix-key-input').value = settings.pix_key || '';
+  document.getElementById('pix-name-input').value = settings.pix_name || '';
+  document.getElementById('pix-city-input').value = settings.pix_city || '';
+  document.getElementById('pts-exact').value  = settings.pts_exact  || '10';
+  document.getElementById('pts-result').value = settings.pts_result || '5';
+  document.getElementById('pts-goal').value   = settings.pts_goal   || '2';
+}
+
+async function saveScoringSettings() {
+  const ptsExact  = parseInt(document.getElementById('pts-exact').value)  || 10;
+  const ptsResult = parseInt(document.getElementById('pts-result').value) || 5;
+  const ptsGoal   = parseInt(document.getElementById('pts-goal').value)   || 2;
+  const msg = document.getElementById('pts-settings-msg');
+  try {
+    const r = await fetch('/api/bolao?action=save-settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ adminNick: session.nick, adminPass: session.pass, ptsExact, ptsResult, ptsGoal })
+    });
+    scoringPts = { exact: ptsExact, result: ptsResult, goal: ptsGoal };
+    msg.textContent = r.ok ? 'Pontuação salva!' : (await r.json()).error || 'Erro.';
+    msg.style.color = r.ok ? 'var(--green-text)' : 'var(--red-text)';
+  } catch (_) {
+    msg.textContent = 'Erro de conexão.';
+    msg.style.color = 'var(--red-text)';
+  }
+  msg.style.display = 'block';
+  setTimeout(() => { msg.style.display = 'none'; }, 3000);
 }
 
 async function savePixSettings() {

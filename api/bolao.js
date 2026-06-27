@@ -24,14 +24,14 @@ async function getDb() {
   return sql;
 }
 
-function calcPoints(p, game) {
+function calcPoints(p, game, pts = { exact: 10, result: 5, goal: 2 }) {
   if (game.homeScore === null || game.awayScore === null) return 0;
   const ph = p.h, pa = p.a, gh = game.homeScore, ga = game.awayScore;
-  if (ph === gh && pa === ga) return 10;
+  if (ph === gh && pa === ga) return pts.exact;
   const pResult = ph > pa ? 'H' : ph < pa ? 'A' : 'D';
   const gResult = gh > ga ? 'H' : gh < ga ? 'A' : 'D';
-  if (pResult === gResult) return 5;
-  if (ph === gh || pa === ga) return 2;
+  if (pResult === gResult) return pts.result;
+  if (ph === gh || pa === ga) return pts.goal;
   return 0;
 }
 
@@ -45,6 +45,14 @@ function calcReason(p, game) {
   if (pResult === gResult) return 'resultado';
   if (ph === gh || pa === ga) return 'gol';
   return 'errou';
+}
+
+function ptsFromSettings(map) {
+  return {
+    exact:  parseInt(map.pts_exact  || '10') || 10,
+    result: parseInt(map.pts_result || '5')  || 5,
+    goal:   parseInt(map.pts_goal   || '2')  || 2,
+  };
 }
 
 async function verifyUser(nick, pass) {
@@ -124,6 +132,7 @@ module.exports = async function handler(req, res) {
       for (const r of settingsRows) settingsMap[r.key] = r.value;
       const entryValue = parseFloat(settingsMap.entry_value || '0') || 0;
       const prize = (parseInt(paidCountRows[0].count) || 0) * entryValue;
+      const pts = ptsFromSettings(settingsMap);
 
       const byNick = {};
       for (const p of allPalpites) {
@@ -133,16 +142,16 @@ module.exports = async function handler(req, res) {
 
       const ranking = users.map(u => {
         const mine = byNick[u.nick] || {};
-        let pts = 0, count = 0;
+        let score = 0, count = 0;
         for (const g of finishedOrLive) {
           const p = mine[g.id];
           if (p) {
-            const earned = calcPoints(p, g);
-            pts += earned;
+            const earned = calcPoints(p, g, pts);
+            score += earned;
             if (earned > 0) count++;
           }
         }
-        return { nick: u.nick, pts, count };
+        return { nick: u.nick, pts: score, count };
       }).sort((a, b) => b.pts - a.pts || b.count - a.count || a.nick.localeCompare(b.nick));
 
       return res.status(200).json({ ranking, prize });
@@ -159,7 +168,13 @@ module.exports = async function handler(req, res) {
       const gameMap = {};
       for (const g of games) gameMap[g.id] = g;
 
-      const rows = await sql`SELECT game_id, home_score, away_score FROM palpites WHERE nick = ${targetNick} ORDER BY created_at`;
+      const [rows, profileSettings] = await Promise.all([
+        sql`SELECT game_id, home_score, away_score FROM palpites WHERE nick = ${targetNick} ORDER BY created_at`,
+        sql`SELECT key, value FROM settings`,
+      ]);
+      const profileSettingsMap = {};
+      for (const r of profileSettings) profileSettingsMap[r.key] = r.value;
+      const profilePts = ptsFromSettings(profileSettingsMap);
 
       const bets = [];
       let totalPts = 0;
@@ -167,7 +182,7 @@ module.exports = async function handler(req, res) {
         const game = gameMap[r.game_id];
         if (!game) continue;
         const p = { h: r.home_score, a: r.away_score };
-        const pts = calcPoints(p, game);
+        const pts = calcPoints(p, game, profilePts);
         const reason = calcReason(p, game);
         if (game.status !== 'scheduled') totalPts += pts;
         bets.push({
@@ -200,7 +215,13 @@ module.exports = async function handler(req, res) {
       let games = [];
       try { games = await fetchGames(); } catch (_) {}
 
-      const rows = await sql`SELECT game_id, home_score, away_score FROM palpites WHERE nick = ${nick}`;
+      const [rows, insightsSettings] = await Promise.all([
+        sql`SELECT game_id, home_score, away_score FROM palpites WHERE nick = ${nick}`,
+        sql`SELECT key, value FROM settings`,
+      ]);
+      const insightsSettingsMap = {};
+      for (const r of insightsSettings) insightsSettingsMap[r.key] = r.value;
+      const insightsPts = ptsFromSettings(insightsSettingsMap);
       const pMap = {};
       for (const r of rows) pMap[r.game_id] = { h: r.home_score, a: r.away_score };
 
@@ -225,7 +246,7 @@ module.exports = async function handler(req, res) {
           if (!p) continue;
           total++;
           const reason = calcReason(p, g);
-          pts += calcPoints(p, g);
+          pts += calcPoints(p, g, insightsPts);
           if (reason === 'exato') exact++;
           else if (reason === 'resultado') result++;
           else if (reason === 'gol') goal++;
@@ -246,7 +267,7 @@ module.exports = async function handler(req, res) {
     }
 
     if (req.method === 'POST' && action === 'save-settings') {
-      const { adminNick, adminPass, pixKey, pixKeyType, pixName, pixCity, entryValue } = req.body;
+      const { adminNick, adminPass, pixKey, pixKeyType, pixName, pixCity, entryValue, ptsExact, ptsResult, ptsGoal } = req.body;
       const admin = await verifyUser(adminNick, adminPass);
       if (!admin || admin.role !== 'admin') return res.status(403).json({ error: 'Acesso negado' });
       const entries = [
@@ -255,6 +276,9 @@ module.exports = async function handler(req, res) {
         ['pix_name', pixName || ''],
         ['pix_city', pixCity || ''],
         ['entry_value', String(parseFloat(entryValue) || 0)],
+        ['pts_exact',  String(parseInt(ptsExact)  || 10)],
+        ['pts_result', String(parseInt(ptsResult) || 5)],
+        ['pts_goal',   String(parseInt(ptsGoal)   || 2)],
       ];
       for (const [key, value] of entries) {
         await sql`INSERT INTO settings (key, value) VALUES (${key}, ${value}) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`;
