@@ -28,7 +28,7 @@
     html, body {
       background: var(--bg-primary);
       color: var(--text-primary);
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', 'Segoe UI', Arial, sans-serif;
       min-height: 100vh;
       -webkit-font-smoothing: antialiased;
     }
@@ -251,6 +251,18 @@
       display: flex;
       z-index: 20;
     }
+    .nav-indicator {
+      position: absolute;
+      top: 4px;
+      bottom: 6px;
+      left: 0;
+      border-radius: 14px;
+      background: rgba(59, 130, 246, 0.13);
+      pointer-events: none;
+      transition: transform 0.35s cubic-bezier(0.34, 1.15, 0.64, 1),
+                  width 0.35s cubic-bezier(0.34, 1.15, 0.64, 1);
+      z-index: 0;
+    }
     .nav-item {
       flex: 1;
       display: flex;
@@ -265,10 +277,13 @@
       border: none;
       background: transparent;
       -webkit-appearance: none;
+      position: relative;
+      z-index: 1;
+      transition: color 0.2s;
     }
     .nav-item .nav-emoji { font-size: 26px; line-height: 1; }
     .nav-item.active { color: var(--blue); }
-    .nav-item:active { opacity: 0.6; }
+    .nav-item:active { opacity: 0.7; }
 
     /* Tab Panels */
     .tab-panel { display: none; padding: 16px; }
@@ -293,7 +308,7 @@
       margin-bottom: 12px;
       margin-top: 4px;
     }
-    .games-header .section-title { margin: 0; }
+    .games-header .section-title { margin: 0; padding-left: 16px; }
     @property --tia-angle {
       syntax: '<angle>';
       initial-value: 0deg;
@@ -420,7 +435,7 @@
     }
     .thiagotron-disclaimer {
       font-size: 12px;
-      color: var(--text-muted);
+      color: var(--text-secondary);
       background: rgba(255,255,255,0.04);
       border: 1px solid var(--border);
       border-radius: 8px;
@@ -505,13 +520,20 @@
       margin-bottom: 10px;
       gap: 8px;
     }
+    .team-block {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
     .team-name {
       font-size: 14px;
       font-weight: 600;
-      flex: 1;
       text-align: center;
       line-height: 1.3;
     }
+    .team-flag { font-size: 24px; line-height: 1; }
     .vs-sep { font-size: 13px; color: var(--text-muted); flex-shrink: 0; }
 
     .live-score {
@@ -523,6 +545,19 @@
       letter-spacing: 2px;
     }
     .live-score-sep { color: var(--text-muted); font-size: 20px; margin: 0 6px; }
+    .game-badge-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 3px;
+    }
+    .live-time {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--red-text);
+      letter-spacing: 0.03em;
+      padding-right: 7px;
+    }
 
     .palpite-area { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 12px; }
 
@@ -552,14 +587,14 @@
     .score-sep { font-size: 18px; color: var(--text-muted); flex-shrink: 0; }
 
     .my-palpite {
-      display: flex;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
       align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
       gap: 6px;
     }
     .my-palpite-label { font-size: 13px; color: var(--text-secondary); }
-    .my-palpite-score { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+    .my-palpite-score { font-size: 14px; font-weight: 700; color: var(--text-primary); text-align: center; }
+    .my-palpite .pts-chip { justify-self: end; }
     .pts-chip {
       font-size: 12px;
       font-weight: 700;
@@ -754,19 +789,15 @@
       -webkit-overflow-scrolling: touch;
     }
     .bet-row {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-      padding: 11px 0;
+      display: grid;
+      grid-template-columns: 1fr 46px 46px 90px;
+      align-items: center;
+      column-gap: 8px;
+      padding: 10px 0;
       border-bottom: 1px solid var(--border);
     }
     .bet-row:last-child { border-bottom: none; }
-    .bet-top {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      min-width: 0;
-    }
+    .bet-info { min-width: 0; }
     .bet-teams {
       font-size: 13px;
       font-weight: 600;
@@ -774,49 +805,20 @@
       overflow: hidden;
       text-overflow: ellipsis;
       color: var(--text-primary);
-      flex: 1;
-      min-width: 0;
-    }
-    .bet-live {
-      flex-shrink: 0;
-      font-size: 10px;
-      font-weight: 700;
-      padding: 2px 6px;
-      border-radius: 20px;
-      background: var(--red-bg);
-      color: var(--red-text);
-      animation: pulse 1.5s ease-in-out infinite;
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
-    }
-    .bet-bottom {
-      display: flex;
-      align-items: center;
-      gap: 8px;
     }
     .bet-meta {
       font-size: 11px;
       color: var(--text-muted);
-      flex: 1;
-      min-width: 0;
+      margin-top: 2px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    .bet-scores {
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      white-space: nowrap;
-    }
-    .bet-score-block {
+    .bet-col {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 1px;
+      gap: 2px;
     }
     .bet-score-label {
       font-size: 9px;
@@ -831,14 +833,18 @@
       color: var(--text-primary);
     }
     .bet-score-val.live { color: var(--red-text); }
-    .bet-score-sep {
-      font-size: 12px;
-      color: var(--text-muted);
-      align-self: flex-end;
-      padding-bottom: 1px;
+    .bet-live {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 20px;
+      background: var(--red-bg);
+      color: var(--red-text);
+      animation: pulse 1.5s ease-in-out infinite;
     }
-    .bet-pts {
-      flex-shrink: 0;
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
     }
     .reason-chip {
       font-size: 11px;
@@ -1080,7 +1086,8 @@
     </div>
 
     <!-- Bottom Nav -->
-    <nav class="bottom-nav">
+    <nav class="bottom-nav" id="bottom-nav">
+      <div class="nav-indicator" id="nav-indicator"></div>
       <button class="nav-item active" onclick="switchTab('games', this)">
         <span class="nav-emoji">⚽</span>
         <span>Jogos</span>
@@ -1275,6 +1282,20 @@ function enterMain() {
   document.getElementById('nav-admin').style.display = session.role === 'admin' ? 'flex' : 'none';
   showScreen('main');
   loadGames();
+  requestAnimationFrame(() => {
+    const activeBtn = document.querySelector('.nav-item.active');
+    updateNavIndicator(activeBtn, true);
+  });
+  initSwipeNav();
+}
+
+function updateNavIndicator(btn, instant) {
+  const indicator = document.getElementById('nav-indicator');
+  if (!indicator || !btn) return;
+  if (instant) indicator.style.transition = 'none';
+  indicator.style.width = btn.offsetWidth + 'px';
+  indicator.style.transform = 'translateX(' + btn.offsetLeft + 'px)';
+  if (instant) requestAnimationFrame(() => { indicator.style.transition = ''; });
 }
 
 function switchTab(name, btn) {
@@ -1288,10 +1309,51 @@ function switchTab(name, btn) {
 
   document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
+  updateNavIndicator(btn);
 
   if (name === 'ranking') loadRanking();
   if (name === 'conta') loadContaTab();
   if (name === 'admin') loadAdminPending();
+}
+
+// ---- SWIPE NAV ----
+function initSwipeNav() {
+  const TAB_ORDER = ['games', 'ranking', 'rules', 'conta'];
+  const mainEl = document.getElementById('screen-main');
+  if (!mainEl || mainEl._swipeInited) return;
+  mainEl._swipeInited = true;
+
+  let startX = 0, startY = 0, tracking = false;
+
+  mainEl.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1) return;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    tracking = true;
+  }, { passive: true });
+
+  mainEl.addEventListener('touchend', e => {
+    if (!tracking) return;
+    tracking = false;
+    const dx = e.changedTouches[0].clientX - startX;
+    const dy = e.changedTouches[0].clientY - startY;
+    if (Math.abs(dx) < 50 || Math.abs(dy) > Math.abs(dx) * 0.8) return;
+
+    const visibleTabs = TAB_ORDER.filter(t => {
+      const btn = document.querySelector(`.nav-item[onclick*="'${t}'"]`);
+      return btn && btn.style.display !== 'none';
+    });
+    const activeBtn = document.querySelector('.nav-item.active');
+    if (!activeBtn) return;
+    const activeTab = visibleTabs.find(t => activeBtn.getAttribute('onclick').includes(`'${t}'`));
+    const idx = visibleTabs.indexOf(activeTab);
+    const nextIdx = dx < 0 ? idx + 1 : idx - 1;
+    if (nextIdx < 0 || nextIdx >= visibleTabs.length) return;
+
+    const nextTab = visibleTabs[nextIdx];
+    const nextBtn = document.querySelector(`.nav-item[onclick*="'${nextTab}'"]`);
+    if (nextBtn) switchTab(nextTab, nextBtn);
+  }, { passive: true });
 }
 
 // ---- WINDOW BOUNDS (Manaus = UTC-4, sem DST) ----
@@ -1372,12 +1434,49 @@ function renderGameCard(g) {
 
   let badgeHtml;
   if (g.status === 'in_progress') {
-    const elapsed = /^live$/i.test(g.timeElapsed) ? '' : (g.timeElapsed || '');
-    badgeHtml = `<span class="badge badge-live">Ao vivo${elapsed ? ' ' + elapsed : ''}</span>`;
+    badgeHtml = `<span class="badge badge-live">AO VIVO</span>`;
   } else if (g.status === 'completed') {
     badgeHtml = `<span class="badge badge-done">Encerrado</span>`;
   } else {
     badgeHtml = `<span class="badge badge-today">Hoje</span>`;
+  }
+
+  let liveTimeLabel = '';
+  if (g.status === 'in_progress') {
+    const raw = (g.timeElapsed || '').trim();
+    if (/^(HT|halftime)$/i.test(raw)) {
+      liveTimeLabel = 'Intervalo';
+    } else if (/^ET$/i.test(raw)) {
+      liveTimeLabel = 'Prorrogação';
+    } else if (/^PEN$/i.test(raw)) {
+      liveTimeLabel = 'Pênaltis';
+    } else if (/^\d/.test(raw)) {
+      const min = parseInt(raw);
+      const period = min <= 45 ? '1º Tempo' : '2º Tempo';
+      liveTimeLabel = `${period} · ${raw}'`;
+    } else if (/^live$/i.test(raw) || raw === '') {
+      if (g.datetime) {
+        const elapsed = Math.floor((Date.now() - new Date(g.datetime)) / 60000);
+        if (elapsed >= 0 && elapsed <= 130) {
+          let period, min;
+          if (elapsed <= 47) {
+            period = '1º Tempo'; min = `~${elapsed}'`;
+          } else if (elapsed <= 62) {
+            period = 'Intervalo'; min = null;
+          } else {
+            period = '2º Tempo'; min = `~${Math.min(elapsed - 62 + 46, 90)}'`;
+          }
+          liveTimeLabel = min ? `${period} · ${min}` : period;
+        }
+      }
+    }
+  }
+
+  if (g.status === 'in_progress') {
+    badgeHtml = `<div class="game-badge-wrap">
+      <span class="badge badge-live">AO VIVO</span>
+      ${liveTimeLabel ? `<span class="live-time">${liveTimeLabel}</span>` : ''}
+    </div>`;
   }
 
   let scoreHtml = '';
@@ -1427,9 +1526,15 @@ function renderGameCard(g) {
         ${badgeHtml}
       </div>
       <div class="game-teams">
-        <span class="team-name">${g.home}</span>
+        <div class="team-block">
+          <span class="team-name">${g.home}</span>
+          <span class="team-flag">${teamFlag(g.home)}</span>
+        </div>
         <span class="vs-sep">vs</span>
-        <span class="team-name">${g.away}</span>
+        <div class="team-block">
+          <span class="team-name">${g.away}</span>
+          <span class="team-flag">${teamFlag(g.away)}</span>
+        </div>
       </div>
       ${scoreHtml}
       ${palpiteHtml}
@@ -1627,6 +1732,31 @@ function closeProfile() {
   document.body.style.overflow = '';
 }
 
+const TEAM_FLAG = {
+  'Argentina': 'ar', 'Austrália': 'au', 'Áustria': 'at', 'Bélgica': 'be',
+  'Bolívia': 'bo', 'Bósnia e Herzegovina': 'ba', 'Brasil': 'br', 'Camarões': 'cm',
+  'Canadá': 'ca', 'Chile': 'cl', 'Colômbia': 'co', 'Costa Rica': 'cr',
+  'Croácia': 'hr', 'República Tcheca': 'cz', 'Dinamarca': 'dk', 'RD Congo': 'cd',
+  'Equador': 'ec', 'Egito': 'eg', 'Inglaterra': 'gb-eng', 'França': 'fr',
+  'Alemanha': 'de', 'Gana': 'gh', 'Grécia': 'gr', 'Haiti': 'ht',
+  'Honduras': 'hn', 'Hungria': 'hu', 'Indonésia': 'id', 'Irã': 'ir',
+  'Iraque': 'iq', 'Israel': 'il', 'Itália': 'it', 'Costa do Marfim': 'ci',
+  'Jamaica': 'jm', 'Japão': 'jp', 'Quênia': 'ke', 'México': 'mx',
+  'Marrocos': 'ma', 'Países Baixos': 'nl', 'Nova Zelândia': 'nz', 'Nigéria': 'ng',
+  'Irlanda do Norte': 'gb-nir', 'Noruega': 'no', 'Panamá': 'pa', 'Paraguai': 'py',
+  'Peru': 'pe', 'Polônia': 'pl', 'Portugal': 'pt', 'Catar': 'qa',
+  'Romênia': 'ro', 'Arábia Saudita': 'sa', 'Escócia': 'gb-sct', 'Senegal': 'sn',
+  'Sérvia': 'rs', 'Eslováquia': 'sk', 'Eslovênia': 'si', 'África do Sul': 'za',
+  'Coreia do Sul': 'kr', 'Espanha': 'es', 'Suécia': 'se', 'Suíça': 'ch',
+  'Turquia': 'tr', 'Ucrânia': 'ua', 'Estados Unidos': 'us', 'Uruguai': 'uy',
+  'Venezuela': 've', 'País de Gales': 'gb-wls',
+};
+function teamFlag(name) {
+  const code = TEAM_FLAG[name];
+  if (!code) return `<span style="display:inline-block;width:28px;height:19px;border-radius:2px;background:#fff;opacity:0.2"></span>`;
+  return `<img src="https://flagcdn.com/w40/${code}.png" width="28" height="19" style="border-radius:2px;object-fit:cover" alt="${name}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{style:'display:inline-block;width:28px;height:19px;border-radius:2px;background:#fff;opacity:0.2'}))">`;
+}
+
 const REASON_LABEL = {
   exato:      { label: '+10 · Exato',    cls: 'reason-exato' },
   resultado:  { label: '+5 · Resultado', cls: 'reason-resultado' },
@@ -1647,32 +1777,25 @@ function renderProfile(data) {
     const time = d.toLocaleTimeString('pt-BR', { timeZone: 'America/Manaus', hour: '2-digit', minute: '2-digit' });
     const date = d.toLocaleDateString('pt-BR', { timeZone: 'America/Manaus', day: '2-digit', month: '2-digit' });
     const r = REASON_LABEL[b.reason] || REASON_LABEL.aguardando;
-    const liveBadge = b.status === 'in_progress' ? '<span class="bet-live">AO VIVO</span>' : '';
     const hasResult = b.homeScore !== null && b.awayScore !== null;
-    const scoresHtml = hasResult ? `
-      <div class="bet-score-block">
-        <span class="bet-score-label">Palpite</span>
-        <span class="bet-score-val">${b.palpiteH}×${b.palpiteA}</span>
-      </div>
-      <span class="bet-score-sep">·</span>
-      <div class="bet-score-block">
-        <span class="bet-score-label">${b.status === 'in_progress' ? 'Ao vivo' : 'Resultado'}</span>
-        <span class="bet-score-val${b.status === 'in_progress' ? ' live' : ''}">${b.homeScore}×${b.awayScore}</span>
-      </div>` : `
-      <div class="bet-score-block">
-        <span class="bet-score-label">Palpite</span>
-        <span class="bet-score-val">${b.palpiteH}×${b.palpiteA}</span>
-      </div>`;
+    const resultLabel = b.status === 'in_progress' ? 'Ao vivo' : 'Resultado';
+    const resultVal = hasResult ? `${b.homeScore}×${b.awayScore}` : '—';
     return `
       <div class="bet-row">
-        <div class="bet-top">
-          <div class="bet-teams">${esc(b.home)} × ${esc(b.away)}</div>
-          ${liveBadge}
-        </div>
-        <div class="bet-bottom">
+        <div class="bet-info">
+          <div class="bet-teams">${esc(b.home)} × ${esc(b.away)}${b.status === 'in_progress' ? ' <span class="bet-live">●</span>' : ''}</div>
           <div class="bet-meta">Grupo ${esc(b.group)} · ${date} ${time}</div>
-          <div class="bet-scores">${scoresHtml}</div>
-          <div class="bet-pts"><span class="reason-chip ${r.cls}">${r.label}</span></div>
+        </div>
+        <div class="bet-col">
+          <span class="bet-score-label">Palpite</span>
+          <span class="bet-score-val">${b.palpiteH}×${b.palpiteA}</span>
+        </div>
+        <div class="bet-col">
+          <span class="bet-score-label">${resultLabel}</span>
+          <span class="bet-score-val${b.status === 'in_progress' ? ' live' : ''}">${resultVal}</span>
+        </div>
+        <div class="bet-col">
+          <span class="reason-chip ${r.cls}">${r.label}</span>
         </div>
       </div>`;
   });
