@@ -712,7 +712,7 @@
     .ranking-pos.bronze { color: #b45309; }
     .ranking-nick { flex: 1; font-size: 15px; font-weight: 600; }
     .ranking-pts { font-size: 15px; font-weight: 700; color: var(--blue-text); }
-    .ranking-count { font-size: 12px; color: var(--text-muted); }
+    .ranking-count { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
 
     .ranking-me .ranking-nick::after {
       content: " (você)";
@@ -1142,12 +1142,12 @@
       <div id="ranking-capture" style="background:var(--bg-primary);border-radius:12px;padding:4px 0 8px">
         <div style="display:flex;align-items:center;gap:8px;padding:8px 4px 12px">
           <img src="/avatar.png" style="width:28px;height:28px;border-radius:50%;object-fit:cover;object-position:center top;flex-shrink:0">
-          <span style="font-size:14px;font-weight:700;color:var(--text-primary);flex:1">Bolão Snip · Classificação</span>
+          <span style="font-size:17px;font-weight:800;color:var(--text-primary);flex:1">Bolão Snip · Classificação</span>
           <button onclick="shareRanking()" style="background:rgba(34,197,94,0.15);border:none;cursor:pointer;padding:6px 10px;border-radius:8px;color:#4ade80" title="Compartilhar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h1a2 2 0 0 0 2 -2a1 1 0 0 1 1 -1h6a1 1 0 0 1 1 1a2 2 0 0 0 2 2h1a2 2 0 0 1 2 2v9a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-9a2 2 0 0 1 2 -2"/><path d="M9 13a3 3 0 1 0 6 0a3 3 0 0 0 -6 0"/></svg></button>
         </div>
         <div id="prize-banner" style="display:none;text-align:center;padding:12px 16px;margin-bottom:12px;background:linear-gradient(135deg,rgba(252,211,77,0.12),rgba(245,158,11,0.08));border:1px solid rgba(252,211,77,0.2);border-radius:12px">
           <div style="font-size:11px;letter-spacing:0.08em;font-weight:700;color:#fbbf24;margin-bottom:2px">PRÊMIO ACUMULADO</div>
-          <div id="prize-amount" style="font-size:30px;font-weight:800;color:#4ade80"></div>
+          <div id="prize-amount" style="font-size:24px;font-weight:800;color:#4ade80"></div>
           <div style="font-size:13px;font-weight:700;color:#f0f0f0;margin-top:4px">Para o 1º lugar</div>
         </div>
         <div id="ranking-list"><div class="spinner">Carregando...</div></div>
