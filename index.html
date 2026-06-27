@@ -1383,13 +1383,13 @@ function switchTab(name, btn) {
   // — sem mover o antigo evitamos o "resquício" de dois painéis se sobrepondo
   const viewport = document.getElementById('tab-viewport');
   viewport.style.minHeight = oldPanel.offsetHeight + 'px';
+  viewport.style.overflow = 'hidden';
 
   newPanel.style.cssText = [
     'display:block',
     'position:absolute',
     'top:0', 'left:0', 'right:0', 'bottom:0',
     'z-index:2',
-    'overflow-y:auto',
     'background:var(--bg-primary)',
     `transform:translateX(${toRight ? '100%' : '-100%'})`,
     'will-change:transform',
@@ -1407,6 +1407,7 @@ function switchTab(name, btn) {
     newPanel.style.cssText = '';
     newPanel.classList.add('active');
     viewport.style.minHeight = '';
+    viewport.style.overflow = '';
     _tabAnimating = false;
   }, DURATION + 20);
 
