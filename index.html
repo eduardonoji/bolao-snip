@@ -2256,10 +2256,12 @@ const STATUS_COLOR = { approved: 'var(--green-text)', pending: 'var(--amber-text
 
 function renderAdminAll(users) {
   const el = document.getElementById('admin-all-list');
-  if (!users.length) {
-    el.innerHTML = '<div class="empty-state">Nenhum usuário.</div>';
+  const processed = users.filter(u => u.status !== 'pending');
+  if (!processed.length) {
+    el.innerHTML = '<div class="empty-state">Nenhum usuário aprovado ou negado ainda.</div>';
     return;
   }
+  users = processed;
   el.innerHTML = users.map(u => `
     <div class="admin-card">
       <div style="flex:1;min-width:0">
