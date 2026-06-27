@@ -1166,7 +1166,20 @@
 
 <script>
 // ---- STATE ----
-let session = JSON.parse(sessionStorage.getItem('session') || 'null');
+const _SESSION_TTL = 7 * 24 * 60 * 60 * 1000; // 7 dias
+function _loadSession() {
+  try {
+    const raw = localStorage.getItem('session');
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    if (!s.savedAt || Date.now() - s.savedAt > _SESSION_TTL) {
+      localStorage.removeItem('session');
+      return null;
+    }
+    return s;
+  } catch { return null; }
+}
+let session = _loadSession();
 let gamesCache = null;
 let myPalpitesCache = {};
 let liveInterval = null;
@@ -1285,8 +1298,8 @@ async function doRegister() {
 }
 
 function afterAuth(data, pass) {
-  session = { nick: data.nick, pass, status: data.status, role: data.role, email: data.email || null, email_reminders: data.email_reminders !== false };
-  sessionStorage.setItem('session', JSON.stringify(session));
+  session = { nick: data.nick, pass, status: data.status, role: data.role, email: data.email || null, email_reminders: data.email_reminders !== false, savedAt: Date.now() };
+  localStorage.setItem('session', JSON.stringify(session));
   if (data.status === 'pending') {
     showScreen('pending');
     startStatusPolling();
@@ -1324,7 +1337,7 @@ function stopStatusPolling() {
 
 function doLogout() {
   session = null;
-  sessionStorage.removeItem('session');
+  localStorage.removeItem('session');
   gamesCache = null;
   myPalpitesCache = {};
   stopLiveInterval();
