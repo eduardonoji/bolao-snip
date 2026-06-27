@@ -111,7 +111,7 @@ module.exports = async function handler(req, res) {
       const { nick, pass } = req.query;
       if (!nick || !pass) return res.status(400).json({ error: 'nick e pass obrigatórios' });
       const encoded = Buffer.from(pass).toString('base64');
-      const rows = await sql`SELECT status, role FROM users WHERE nick = ${nick} AND pass = ${encoded}`;
+      const rows = await sql`SELECT status, role, paid FROM users WHERE nick = ${nick} AND pass = ${encoded}`;
       if (!rows.length) return res.status(401).json({ error: 'Credenciais inválidas' });
       return res.status(200).json(rows[0]);
     }

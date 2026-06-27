@@ -213,6 +213,9 @@
     .pending-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
     .pending-text { color: var(--text-secondary); font-size: 14px; line-height: 1.5; margin-bottom: 24px; }
 
+    #screen-payment { display: none; flex-direction: column; align-items: center; justify-content: center; padding: 32px 20px; min-height: 100vh; text-align: center; }
+    #screen-payment.active { display: flex; }
+
     /* ---- MAIN ---- */
     #screen-main { display: none; padding-bottom: 80px; }
     #screen-main.active { display: block; }
@@ -1059,6 +1062,28 @@
     <button class="btn btn-primary" style="max-width:200px;margin-top:24px" onclick="doLogout()">Sair</button>
   </div>
 
+  <!-- PAYMENT SCREEN -->
+  <div id="screen-payment" class="screen">
+    <div style="font-size:22px;font-weight:800;color:var(--text-primary);margin-bottom:4px">⚽ Bolão Snip</div>
+    <div style="font-size:13px;color:var(--text-muted);margin-bottom:28px">Copa do Mundo 2026</div>
+    <div style="width:100%;max-width:320px;background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:20px;text-align:left">
+      <div style="font-size:14px;font-weight:700;color:#fbbf24;margin-bottom:4px">Pagamento pendente</div>
+      <div style="font-size:13px;color:var(--text-secondary);margin-bottom:16px">Pague via PIX para participar do bolão. Após confirmar, o admin vai te liberar.</div>
+      <div id="payment-pix-qr-wrap" style="display:none;text-align:center;margin-bottom:12px">
+        <div id="payment-pix-qr" style="display:inline-block;background:#fff;padding:8px;border-radius:8px"></div>
+      </div>
+      <div id="payment-pix-key-info" style="display:none;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px">
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:2px">Valor</div>
+        <div id="payment-pix-value" style="font-size:20px;font-weight:800;color:#fcd34d;margin-bottom:10px"></div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">Chave PIX:</div>
+        <div id="payment-pix-key-display" style="font-size:13px;font-weight:600;color:#f0f0f0;background:var(--bg-input);padding:10px 12px;border-radius:8px;cursor:pointer;word-break:break-all" onclick="copyPaymentPixKey()"></div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;text-align:center">Toque para copiar</div>
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:14px;text-align:center">Após pagar, aguarde o admin confirmar o pagamento.</div>
+    </div>
+    <button class="btn" style="margin-top:28px;min-width:140px;background:rgba(255,255,255,0.07);color:var(--text-secondary);border:1px solid var(--border)" onclick="doLogout()">Sair</button>
+  </div>
+
   <!-- MAIN SCREEN -->
 
   <div id="screen-main" class="screen">
@@ -1629,6 +1654,12 @@ function doLogout() {
 
 // ---- MAIN ----
 function enterMain() {
+  if (!session.paid && session.role !== 'admin') {
+    showScreen('payment');
+    loadPaymentScreen();
+    startPaymentPolling();
+    return;
+  }
   loadAllSettings();
   document.getElementById('nav-admin').style.display = session.role === 'admin' ? 'flex' : 'none';
   // Reset tab state para evitar resquícios de sessão anterior
@@ -1639,7 +1670,6 @@ function enterMain() {
   const gamesBtn = document.querySelector('#bottom-nav .nav-item');
   if (gamesBtn) gamesBtn.classList.add('active');
   showScreen('main');
-  if (!session.paid && session.role !== 'admin') loadPaymentBanner();
   loadGames();
   requestAnimationFrame(() => {
     const activeBtn = document.querySelector('.nav-item.active');
@@ -2773,6 +2803,50 @@ function buildPixPayload(key, name, city, value) {
     f('62', additional) +
     '6304';
   return payload + crc16ccitt(payload).toString(16).toUpperCase().padStart(4, '0');
+}
+
+async function loadPaymentScreen() {
+  try {
+    const r = await fetch('/api/bolao?action=settings');
+    const { settings } = await r.json();
+    const entryValue = parseFloat(settings.entry_value || '0') || 0;
+    if (!settings.pix_key || entryValue <= 0) return;
+    document.getElementById('payment-pix-value').textContent = `R$ ${entryValue.toFixed(2).replace('.', ',')}`;
+    document.getElementById('payment-pix-key-display').textContent = settings.pix_key;
+    document.getElementById('payment-pix-key-info').style.display = 'block';
+    try {
+      const payload = buildPixPayload(settings.pix_key, settings.pix_name || 'Bolao Snip', settings.pix_city || 'Manaus', entryValue);
+      const qr = qrcode(0, 'M');
+      qr.addData(payload);
+      qr.make();
+      document.getElementById('payment-pix-qr').innerHTML = qr.createImgTag(4);
+      document.getElementById('payment-pix-qr-wrap').style.display = 'block';
+    } catch (_) {}
+  } catch (_) {}
+}
+
+let paymentPollInterval = null;
+function startPaymentPolling() {
+  if (paymentPollInterval) clearInterval(paymentPollInterval);
+  paymentPollInterval = setInterval(async () => {
+    if (!session) return;
+    try {
+      const r = await fetch(`/api/auth?action=status&nick=${encodeURIComponent(session.nick)}&pass=${encodeURIComponent(session.pass)}`);
+      if (!r.ok) return;
+      const data = await r.json();
+      if (data.paid === true) {
+        clearInterval(paymentPollInterval); paymentPollInterval = null;
+        session.paid = true;
+        localStorage.setItem('session', JSON.stringify(session));
+        enterMain();
+      }
+    } catch (_) {}
+  }, 10000);
+}
+
+async function copyPaymentPixKey() {
+  const key = document.getElementById('payment-pix-key-display').textContent;
+  try { await navigator.clipboard.writeText(key); } catch (_) {}
 }
 
 async function loadPendingPayment() {
