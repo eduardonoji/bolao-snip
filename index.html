@@ -1480,6 +1480,13 @@ function doLogout() {
 // ---- MAIN ----
 function enterMain() {
   document.getElementById('nav-admin').style.display = session.role === 'admin' ? 'flex' : 'none';
+  // Reset tab state para evitar resquícios de sessão anterior
+  document.querySelectorAll('.tab-panel').forEach(p => { p.style.display = 'none'; p.classList.remove('active'); });
+  const gamesPanel = document.getElementById('tab-games');
+  if (gamesPanel) { gamesPanel.style.display = ''; gamesPanel.classList.add('active'); }
+  document.querySelectorAll('#bottom-nav .nav-item').forEach(b => b.classList.remove('active'));
+  const gamesBtn = document.querySelector('#bottom-nav .nav-item');
+  if (gamesBtn) gamesBtn.classList.add('active');
   showScreen('main');
   if (!session.paid && session.role !== 'admin') loadPaymentBanner();
   loadGames();
