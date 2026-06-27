@@ -193,6 +193,38 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ ok: true });
     }
 
+    if (req.method === 'POST' && action === 'revoke') {
+      const { adminNick, adminPass, targetNick } = req.body;
+      if (!targetNick) return res.status(400).json({ error: 'targetNick obrigatório' });
+      const encoded = Buffer.from(adminPass || '').toString('base64');
+      const adminRows = await sql`SELECT role FROM users WHERE nick = ${adminNick} AND pass = ${encoded}`;
+      if (!adminRows.length || adminRows[0].role !== 'admin') return res.status(403).json({ error: 'Acesso negado' });
+      if (targetNick === ADMIN_NICK) return res.status(400).json({ error: 'Não é possível revogar o admin' });
+      await sql`UPDATE users SET status = 'pending', paid = false WHERE nick = ${targetNick}`;
+      return res.status(200).json({ ok: true });
+    }
+
+    if (req.method === 'POST' && action === 'admin-edit-user') {
+      const { adminNick, adminPass, targetNick, newNick, newPass } = req.body;
+      if (!targetNick) return res.status(400).json({ error: 'targetNick obrigatório' });
+      const encoded = Buffer.from(adminPass || '').toString('base64');
+      const adminRows = await sql`SELECT role FROM users WHERE nick = ${adminNick} AND pass = ${encoded}`;
+      if (!adminRows.length || adminRows[0].role !== 'admin') return res.status(403).json({ error: 'Acesso negado' });
+      const finalNick = newNick && newNick.trim().length >= 2 ? newNick.trim() : targetNick;
+      if (finalNick !== targetNick) {
+        const conflict = await sql`SELECT 1 FROM users WHERE nick = ${finalNick}`;
+        if (conflict.length) return res.status(409).json({ error: 'Nick já em uso' });
+        await sql`UPDATE palpites SET nick = ${finalNick} WHERE nick = ${targetNick}`;
+      }
+      if (newPass && newPass.trim().length >= 4) {
+        const newEncoded = Buffer.from(newPass.trim()).toString('base64');
+        await sql`UPDATE users SET nick = ${finalNick}, pass = ${newEncoded} WHERE nick = ${targetNick}`;
+      } else {
+        await sql`UPDATE users SET nick = ${finalNick} WHERE nick = ${targetNick}`;
+      }
+      return res.status(200).json({ ok: true, newNick: finalNick });
+    }
+
     if (req.method === 'POST' && action === 'delete') {
       const { adminNick, adminPass, targetNick } = req.body;
       if (!targetNick) return res.status(400).json({ error: 'targetNick obrigatório' });
