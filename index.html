@@ -1873,10 +1873,6 @@ async function loadGames() {
 
 function renderGames() {
   if (!gamesCache) return;
-  if (!session.paid && session.role !== 'admin') {
-    document.getElementById('games-list').innerHTML = '';
-    return;
-  }
   const { start, end } = getWindowBounds();
   const todayGames = gamesCache.filter(g => {
     if (!g.datetime) return false;
@@ -2058,10 +2054,6 @@ function closeThiagotronModal() {
 }
 
 async function thiagotronBetAll() {
-  if (!session.paid && session.role !== 'admin') {
-    closeThiagotronModal();
-    return;
-  }
   const { start, end } = getWindowBounds();
   const openGames = (gamesCache || []).filter(g => {
     if (!g.datetime) return false;
