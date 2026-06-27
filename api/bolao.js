@@ -81,7 +81,6 @@ module.exports = async function handler(req, res) {
       const user = await verifyUser(nick, pass);
       if (!user) return res.status(401).json({ error: 'Credenciais inválidas' });
       if (user.status !== 'approved') return res.status(403).json({ error: 'Usuário não aprovado' });
-      if (!user.paid && user.role !== 'admin') return res.status(403).json({ error: 'Pagamento pendente' });
 
       const games = await fetchGames();
       const game = games.find(g => g.id === gameId);
