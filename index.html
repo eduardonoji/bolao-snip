@@ -293,15 +293,6 @@
     #tab-viewport { position: relative; overflow-x: hidden; }
     .tab-panel { display: none; padding: 16px; }
     .tab-panel.active { display: block; }
-    .tab-panel.tab-slide-out {
-      position: absolute; top: 0; left: 0; right: 0;
-      display: block; z-index: 1; pointer-events: none;
-      transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .tab-panel.tab-slide-in {
-      display: block;
-      transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
-    }
 
     /* ---- GAMES ---- */
     .section-title {
@@ -1384,40 +1375,39 @@ function switchTab(name, btn) {
   const oldIdx = TAB_ORDER_ALL.indexOf(oldPanel.id.replace('tab-', ''));
   const newIdx = TAB_ORDER_ALL.indexOf(name);
   const toRight = newIdx > oldIdx;
-  const DURATION = 320;
+  const DURATION = 300;
 
   _tabAnimating = true;
 
-  // Freeze viewport height so it doesn't collapse when old panel goes absolute
+  // O painel novo desliza por cima do antigo (que fica estático como fundo)
+  // — sem mover o antigo evitamos o "resquício" de dois painéis se sobrepondo
   const viewport = document.getElementById('tab-viewport');
   viewport.style.minHeight = oldPanel.offsetHeight + 'px';
 
-  // Old panel: absolute overlay, slides out (parallax -25%)
-  oldPanel.classList.add('tab-slide-out');
-  oldPanel.style.transform = 'translateX(0)';
+  newPanel.style.cssText = [
+    'display:block',
+    'position:absolute',
+    'top:0', 'left:0', 'right:0',
+    'z-index:2',
+    'background:var(--bg-primary)',
+    `transform:translateX(${toRight ? '100%' : '-100%'})`,
+    'will-change:transform',
+  ].join(';');
 
-  // New panel: starts off-screen, slides in
-  newPanel.classList.add('tab-slide-in');
-  newPanel.style.display = 'block';
-  newPanel.style.transform = `translateX(${toRight ? '100%' : '-100%'})`;
-
-  // Force reflow so initial transforms are painted before transition fires
+  // Força reflow para a posição inicial ser pintada antes da transição
   newPanel.offsetHeight;
 
-  // Trigger both transitions simultaneously
-  oldPanel.style.transform = `translateX(${toRight ? '-25%' : '25%'})`;
+  newPanel.style.transition = `transform ${DURATION}ms cubic-bezier(0.4,0,0.2,1)`;
   newPanel.style.transform = 'translateX(0)';
 
   setTimeout(() => {
-    // Finalize state
-    oldPanel.classList.remove('active', 'tab-slide-out');
-    oldPanel.style.cssText = '';
-    newPanel.classList.remove('tab-slide-in');
+    oldPanel.classList.remove('active');
+    oldPanel.style.display = 'none';
     newPanel.style.cssText = '';
     newPanel.classList.add('active');
     viewport.style.minHeight = '';
     _tabAnimating = false;
-  }, DURATION + 16);
+  }, DURATION + 20);
 
   if (name === 'ranking') loadRanking();
   if (name === 'conta') loadContaTab();
