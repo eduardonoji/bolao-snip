@@ -1401,28 +1401,14 @@ function switchTab(name, btn) {
   newPanel.style.transition = `transform ${DURATION}ms cubic-bezier(0.4,0,0.2,1)`;
   newPanel.style.transform = 'translateX(0)';
 
-  // Nos últimos 40ms do slide, esmaece o painel para cobrir a re-pintura do layout
-  setTimeout(() => {
-    newPanel.style.transition = 'opacity 40ms linear';
-    newPanel.style.opacity = '0';
-  }, DURATION - 40);
-
   setTimeout(() => {
     oldPanel.classList.remove('active');
     oldPanel.style.display = 'none';
-    // Entra no fluxo normal já invisível e faz fade-in suave
-    newPanel.style.cssText = 'opacity:0';
+    newPanel.style.cssText = '';
     newPanel.classList.add('active');
     viewport.style.minHeight = '';
     viewport.style.overflow = '';
-    requestAnimationFrame(() => {
-      newPanel.style.transition = 'opacity 0.13s ease';
-      newPanel.style.opacity = '1';
-      setTimeout(() => {
-        newPanel.style.cssText = '';
-        _tabAnimating = false;
-      }, 150);
-    });
+    _tabAnimating = false;
   }, DURATION + 20);
 
   if (name === 'ranking') loadRanking();
