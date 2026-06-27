@@ -1387,8 +1387,9 @@ function switchTab(name, btn) {
   newPanel.style.cssText = [
     'display:block',
     'position:absolute',
-    'top:0', 'left:0', 'right:0',
+    'top:0', 'left:0', 'right:0', 'bottom:0',
     'z-index:2',
+    'overflow-y:auto',
     'background:var(--bg-primary)',
     `transform:translateX(${toRight ? '100%' : '-100%'})`,
     'will-change:transform',
