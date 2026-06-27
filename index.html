@@ -2357,16 +2357,20 @@ function renderAdminAll(users) {
         <div style="font-size:12px;color:${STATUS_COLOR[u.status] || 'var(--text-muted)'}">
           ${esc(STATUS_LABEL[u.status] || u.status)}${u.email ? ' · ' + esc(u.email) : ''}
         </div>
-      </div>
-      <div class="admin-actions">
         ${u.role === 'admin' ? `
-          <button class="btn btn-sm" style="${u.paid ? 'background:rgba(34,197,94,0.15);color:#4ade80' : 'background:rgba(255,255,255,0.07);color:var(--text-muted)'}" data-nick="${esc(u.nick)}" data-paid="${u.paid ? 'true' : 'false'}" onclick="adminTogglePaid(this.dataset.nick, this.dataset.paid !== 'true')">${u.paid ? icon('check',13) + ' Participando do bolão' : icon('circle',13) + ' Participando do bolão'}</button>
-        ` : `
-          <button class="btn btn-sm" style="${u.paid ? 'background:rgba(34,197,94,0.15);color:#4ade80' : 'background:rgba(251,191,36,0.15);color:#fbbf24'}" data-nick="${esc(u.nick)}" data-paid="${u.paid ? 'true' : 'false'}" onclick="adminTogglePaid(this.dataset.nick, this.dataset.paid !== 'true')">${u.paid ? icon('check',13) + ' Pago' : '$ Pendente'}</button>
-          <button class="btn btn-sm" style="background:rgba(251,191,36,0.15);color:#fbbf24" data-nick="${esc(u.nick)}" onclick="adminResetPassword(this.dataset.nick)">${icon('key',13)} Resetar senha</button>
-          <button class="btn btn-sm btn-delete" data-nick="${esc(u.nick)}" onclick="adminDeleteUser(this.dataset.nick)">${icon('trash',13)} Excluir</button>
-        `}
+        <label style="display:inline-flex;align-items:center;gap:7px;margin-top:8px;cursor:pointer;user-select:none" onclick="adminTogglePaid('${esc(u.nick)}', ${!u.paid})">
+          <span style="width:17px;height:17px;border-radius:4px;border:2px solid ${u.paid ? '#4ade80' : 'rgba(255,255,255,0.25)'};background:${u.paid ? '#4ade80' : 'transparent'};display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s">
+            ${u.paid ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-9"/></svg>' : ''}
+          </span>
+          <span style="font-size:13px;color:${u.paid ? '#4ade80' : 'var(--text-muted)'}">Participando do bolão</span>
+        </label>` : ''}
       </div>
+      ${u.role !== 'admin' ? `
+      <div class="admin-actions">
+        <button class="btn btn-sm" style="${u.paid ? 'background:rgba(34,197,94,0.15);color:#4ade80' : 'background:rgba(251,191,36,0.15);color:#fbbf24'}" data-nick="${esc(u.nick)}" data-paid="${u.paid ? 'true' : 'false'}" onclick="adminTogglePaid(this.dataset.nick, this.dataset.paid !== 'true')">${u.paid ? icon('check',13) + ' Pago' : '$ Pendente'}</button>
+        <button class="btn btn-sm" style="background:rgba(251,191,36,0.15);color:#fbbf24" data-nick="${esc(u.nick)}" onclick="adminResetPassword(this.dataset.nick)">${icon('key',13)} Resetar senha</button>
+        <button class="btn btn-sm btn-delete" data-nick="${esc(u.nick)}" onclick="adminDeleteUser(this.dataset.nick)">${icon('trash',13)} Excluir</button>
+      </div>` : ''}
     </div>
   `).join('');
 }
