@@ -309,14 +309,64 @@
     }
 
     .games-header {
-      display: flex;
+      display: grid;
+      grid-template-columns: 1fr auto;
       align-items: center;
-      justify-content: space-between;
       min-height: 44px;
       margin-bottom: 12px;
       margin-top: 4px;
     }
+    .games-header-left { display: flex; flex-direction: column; gap: 2px; }
     .games-header .section-title { margin: 0; padding-left: 16px; }
+    .insights-bar {
+      display: none;
+      align-items: center;
+      padding: 2px 16px 4px;
+      cursor: pointer;
+      gap: 5px;
+    }
+    .insights-bar:active { opacity: 0.7; }
+    .insights-bar .ti-icon { width: 15px; height: 15px; opacity: 0.7; color: #f59e0b; }
+    .insights-bar-text { font-size: 11px; color: var(--text-secondary); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+    .insights-modal {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 24px 20px 20px;
+      width: 100%;
+      max-width: 340px;
+      max-height: 88vh;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .insights-modal h3 { font-size: 16px; font-weight: 700; color: var(--text-primary); margin: 0 0 14px; text-align: center; }
+    .insights-section {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+    }
+    .insights-section-label { font-size: 10px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 6px; }
+    .insights-pts-big { font-size: 26px; font-weight: 700; color: var(--blue); margin-bottom: 4px; }
+    .insights-yesterday-breakdown { font-size: 12px; color: var(--text-secondary); }
+    .insights-hit-rate { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; }
+    .insights-hit-rate strong { color: #4ade80; }
+    .insights-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 7px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      font-size: 13px;
+    }
+    .insights-row:last-child { border-bottom: none; }
+    .insights-row-label { color: var(--text-secondary); }
+    .insights-row-val { font-weight: 600; color: var(--text-primary); }
+    .insights-footer { font-size: 11px; color: var(--text-secondary); text-align: center; line-height: 1.5; margin-top: 4px; }
+    .insights-modal .modal-btns { margin-top: 16px; }
     @property --tia-angle {
       syntax: '<angle>';
       initial-value: 0deg;
@@ -916,7 +966,7 @@
     .logout-btn {
       background: transparent;
       border: none;
-      color: var(--text-muted);
+      color: #f87171;
       font-size: 13px;
       cursor: pointer;
       padding: 4px 0;
@@ -997,7 +1047,13 @@
     <!-- Games Tab -->
     <div id="tab-games" class="tab-panel active">
       <div class="games-header">
-        <div class="section-title" id="games-section-title"><svg class="ti-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z"/><path d="M16 3l0 4"/><path d="M8 3l0 4"/><path d="M4 11l16 0"/><path d="M8 15h2v2h-2z"/></svg> Jogos de Hoje</div>
+        <div class="games-header-left">
+          <div class="section-title" id="games-section-title"><svg class="ti-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z"/><path d="M16 3l0 4"/><path d="M8 3l0 4"/><path d="M4 11l16 0"/><path d="M8 15h2v2h-2z"/></svg> Jogos de Hoje</div>
+          <div class="insights-bar" id="insights-bar" onclick="openInsightsModal()">
+            <svg class="ti-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21l8 0"/><path d="M12 17l0 4"/><path d="M7 4l10 0"/><path d="M17 4v8a5 5 0 0 1 -10 0v-8"/><path d="M5 9m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M19 9m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/></svg>
+            <span class="insights-bar-text" id="insights-bar-text"></span>
+          </div>
+        </div>
         <div class="thiagotron-flame-host" onclick="openThiagotronModal()">
           <div class="thiagotron-avatar-wrap">
             <img src="/thiagotron.png" class="thiagotron-avatar" alt="Thiagotron">
@@ -1024,6 +1080,17 @@
         <div class="modal-btns">
           <button class="btn btn-thiagotron" id="btn-manda-ver" onclick="thiagotronBetAll()">Manda ver ThIAgotron!</button>
           <button class="btn btn-sm" style="background:var(--bg-input);color:var(--text-secondary);width:100%;padding:12px" onclick="closeThiagotronModal()">Fechar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Desempenho -->
+    <div class="thiagotron-overlay" id="insights-overlay" onclick="if(event.target===this)closeInsightsModal()">
+      <div class="insights-modal">
+        <h3>📊 Meu Desempenho</h3>
+        <div id="insights-modal-content"></div>
+        <div class="modal-btns">
+          <button class="btn btn-sm" style="background:rgba(255,255,255,0.1);color:var(--text-primary);border:1px solid rgba(255,255,255,0.12);width:100%;padding:12px" onclick="closeInsightsModal()">Fechar</button>
         </div>
       </div>
     </div>
@@ -1182,6 +1249,7 @@ function _loadSession() {
 let session = _loadSession();
 let gamesCache = null;
 let myPalpitesCache = {};
+let insightsCache = null;
 let liveInterval = null;
 let statusPollInterval = null;
 
@@ -1340,6 +1408,7 @@ function doLogout() {
   localStorage.removeItem('session');
   gamesCache = null;
   myPalpitesCache = {};
+  insightsCache = null;
   stopLiveInterval();
   stopStatusPolling();
   showScreen('auth');
@@ -1498,8 +1567,70 @@ function calcPoints(p, game) {
   return 0;
 }
 
+// ---- INSIGHTS ----
+async function loadInsights() {
+  try {
+    const r = await fetch(`/api/bolao?action=insights&nick=${encodeURIComponent(session.nick)}&pass=${encodeURIComponent(session.pass)}`);
+    if (!r.ok) return;
+    insightsCache = await r.json();
+    renderInsightsBar();
+  } catch (_) {}
+}
+
+function renderInsightsBar() {
+  const bar = document.getElementById('insights-bar');
+  const txt = document.getElementById('insights-bar-text');
+  if (!bar || !txt || !insightsCache) return;
+  const { total, yesterday } = insightsCache;
+  let text = `${total.pts} pts`;
+  if (yesterday.total > 0) text += ` · Ontem +${yesterday.pts} pts`;
+  const chevron = `<svg style="display:inline-block;vertical-align:middle;flex-shrink:0;width:11px;height:11px;opacity:0.8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6l-6 6"/></svg>`;
+  txt.innerHTML = `${text} ${chevron}`;
+  bar.style.display = 'flex';
+}
+
+function openInsightsModal() {
+  if (!insightsCache) return;
+  const { total: t, yesterday: y } = insightsCache;
+  let html = '';
+
+  if (y.total > 0) {
+    html += `<div class="insights-section">
+      <div class="insights-section-label">Ontem</div>
+      <div class="insights-pts-big">+${y.pts} pts</div>
+      <div class="insights-row"><span class="insights-row-label">🎯 Placares exatos</span><span class="insights-row-val">${y.exact}</span></div>
+      <div class="insights-row"><span class="insights-row-label">✅ Resultados certos</span><span class="insights-row-val">${y.result}</span></div>
+      <div class="insights-row"><span class="insights-row-label">⚽ Gols certos</span><span class="insights-row-val">${y.goal}</span></div>
+      <div class="insights-row"><span class="insights-row-label">❌ Erros</span><span class="insights-row-val">${y.miss}</span></div>
+    </div>`;
+  }
+
+  html += `<div class="insights-section">
+    <div class="insights-section-label">Copa toda</div>
+    ${t.hitRate !== null ? `<div class="insights-hit-rate">Taxa de acerto: <strong>${t.hitRate}%</strong></div>` : ''}
+    <div class="insights-row"><span class="insights-row-label">🎯 Placares exatos</span><span class="insights-row-val">${t.exact}</span></div>
+    <div class="insights-row"><span class="insights-row-label">✅ Resultados certos</span><span class="insights-row-val">${t.result}</span></div>
+    <div class="insights-row"><span class="insights-row-label">⚽ Gols certos</span><span class="insights-row-val">${t.goal}</span></div>
+    <div class="insights-row"><span class="insights-row-label">❌ Erros</span><span class="insights-row-val">${t.miss}</span></div>
+    <div class="insights-row"><span class="insights-row-label">📝 Total de apostas</span><span class="insights-row-val">${t.total}</span></div>
+    <div class="insights-row"><span class="insights-row-label">⭐ Pontos totais</span><span class="insights-row-val">${t.pts} pts</span></div>
+  </div>`;
+
+  html += `<div class="insights-footer">Para ver seu histórico completo, acesse Ranking e toque no seu nome.</div>`;
+
+  document.getElementById('insights-modal-content').innerHTML = html;
+  document.getElementById('insights-overlay').classList.add('open');
+}
+
+function closeInsightsModal() {
+  document.getElementById('insights-overlay').classList.remove('open');
+}
+
 // ---- GAMES ----
 async function loadGames() {
+  const barEl = document.getElementById('insights-bar');
+  const txtEl = document.getElementById('insights-bar-text');
+  if (barEl && txtEl) { txtEl.textContent = 'carregando...'; barEl.style.display = 'flex'; }
   try {
     const [gRes, pRes] = await Promise.all([
       fetch('/api/games'),
@@ -1514,6 +1645,7 @@ async function loadGames() {
   } catch (e) {
     document.getElementById('games-list').innerHTML = '<div class="empty-state">Erro ao carregar jogos. Tente novamente.</div>';
   }
+  loadInsights();
 }
 
 function renderGames() {
@@ -1635,7 +1767,7 @@ function renderGameCard(g) {
   return `
     <div class="game-card">
       <div class="game-header">
-        <span class="game-time">${time}</span>
+        <span class="game-time">${icon('clock', 12)} ${time}</span>
         ${badgeHtml}
       </div>
       <div class="game-teams">

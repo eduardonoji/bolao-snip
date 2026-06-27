@@ -49,8 +49,7 @@ function buildReminderEmail(nick, triggerGame, otherMissingGames) {
 <body style="margin:0;padding:0;background:#0f0f0f">
   <div style="max-width:480px;margin:0 auto;padding:24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
     <div style="margin-bottom:24px">
-      <span style="font-size:28px">⚽</span>
-      <span style="font-size:18px;font-weight:700;color:#f0f0f0;margin-left:8px">Bolão Snip - 2026</span>
+      <span style="font-size:18px;font-weight:700;color:#f0f0f0">Bolão Snip - 2026</span>
     </div>
     <div style="background:#1a1a1a;border-radius:14px;padding:24px;border:1px solid rgba(255,255,255,0.08)">
       <p style="margin:0 0 8px;font-size:18px;font-weight:700;color:#f0f0f0">Opa, ${nick}! 👋</p>

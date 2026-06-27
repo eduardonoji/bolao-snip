@@ -174,6 +174,53 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ nick: targetNick, totalPts, bets });
     }
 
+    if (req.method === 'GET' && action === 'insights') {
+      const { nick, pass } = req.query;
+      if (!nick || !pass) return res.status(400).json({ error: 'nick e pass obrigatórios' });
+      const user = await verifyUser(nick, pass);
+      if (!user || user.status !== 'approved') return res.status(403).json({ error: 'Não autorizado' });
+
+      let games = [];
+      try { games = await fetchGames(); } catch (_) {}
+
+      const rows = await sql`SELECT game_id, home_score, away_score FROM palpites WHERE nick = ${nick}`;
+      const pMap = {};
+      for (const r of rows) pMap[r.game_id] = { h: r.home_score, a: r.away_score };
+
+      const now = new Date();
+      const manausNow = new Date(now.getTime() - 4 * 60 * 60 * 1000);
+      const h = manausNow.getUTCHours();
+      const todayStart = new Date(manausNow);
+      todayStart.setUTCHours(10, 0, 0, 0);
+      if (h < 6) todayStart.setUTCDate(todayStart.getUTCDate() - 1);
+      const yStart = new Date(todayStart.getTime() - 24 * 60 * 60 * 1000);
+
+      const completed = games.filter(g => g.status === 'completed');
+      const yesterday = completed.filter(g => {
+        const d = new Date(g.datetime);
+        return d >= yStart && d < todayStart;
+      });
+
+      function summarize(gameList) {
+        let pts = 0, exact = 0, result = 0, goal = 0, miss = 0, total = 0;
+        for (const g of gameList) {
+          const p = pMap[g.id];
+          if (!p) continue;
+          total++;
+          const reason = calcReason(p, g);
+          pts += calcPoints(p, g);
+          if (reason === 'exato') exact++;
+          else if (reason === 'resultado') result++;
+          else if (reason === 'gol') goal++;
+          else if (reason === 'errou') miss++;
+        }
+        const hitRate = total > 0 ? Math.round((exact + result + goal) / total * 100) : null;
+        return { pts, exact, result, goal, miss, total, hitRate };
+      }
+
+      return res.status(200).json({ total: summarize(completed), yesterday: summarize(yesterday) });
+    }
+
     return res.status(400).json({ error: 'Ação inválida' });
   } catch (e) {
     console.error(e);
