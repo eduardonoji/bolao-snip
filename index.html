@@ -1043,8 +1043,9 @@
   <div id="screen-pending" class="screen">
     <img src="/boleiro.png" style="width:160px;height:160px;border-radius:50%;object-fit:cover;object-position:center 25%;border:3px solid rgba(255,255,255,0.1);margin-bottom:8px">
     <div class="pending-title">Aguardando liberação</div>
-    <div class="pending-text">Faça o pagamento via PIX abaixo para entrar no bolão.<br>Após confirmar o pagamento, o admin vai te liberar.</div>
+    <div id="pending-text" class="pending-text">Faça o pagamento via PIX abaixo para entrar no bolão.<br>Após confirmar o pagamento, o admin vai te liberar.</div>
     <div id="pending-payment" style="width:100%;max-width:320px;margin:16px auto 0">
+      <div id="pending-pix-loading" class="spinner" style="display:none">Carregando...</div>
       <div id="pending-pix-qr-wrap" style="display:none;text-align:center;margin-bottom:12px">
         <div id="pending-pix-qr" style="display:inline-block;background:#fff;padding:8px;border-radius:8px"></div>
       </div>
@@ -1168,15 +1169,15 @@
         <h3>Pontuação</h3>
         <div class="pts-row">
           <span class="pts-row-label">Placar exato</span>
-          <span class="pts-row-val">+10 pts</span>
+          <span class="pts-row-val" id="rules-pts-exact">+10 pts</span>
         </div>
         <div class="pts-row">
           <span class="pts-row-label">Resultado certo (vitória/empate)</span>
-          <span class="pts-row-val">+5 pts</span>
+          <span class="pts-row-val" id="rules-pts-result">+5 pts</span>
         </div>
         <div class="pts-row">
           <span class="pts-row-label">Acertou gols de um time</span>
-          <span class="pts-row-val">+2 pts</span>
+          <span class="pts-row-val" id="rules-pts-goal">+2 pts</span>
         </div>
       </div>
       <div class="rules-card">
@@ -1265,31 +1266,43 @@
           <div class="admin-chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></div>
         </div>
         <div id="body-pix" class="admin-section-body">
-          <div class="form-group">
-            <label class="form-label">Valor por pessoa (R$)</label>
-            <input id="pix-entry-value-input" class="form-input" type="number" min="0" step="0.01" placeholder="20.00">
+          <div style="display:flex;gap:8px;margin-bottom:16px">
+            <button id="btn-mode-per-person" class="btn btn-sm" onclick="setPaymentMode('per_person')" style="flex:1;background:var(--blue);color:#fff">Cobrança por pessoa</button>
+            <button id="btn-mode-fixed-prize" class="btn btn-sm" onclick="setPaymentMode('fixed_prize')" style="flex:1;background:rgba(255,255,255,0.07);color:var(--text-secondary)">Prêmio fixo</button>
           </div>
-          <div class="form-group">
-            <label class="form-label">Tipo da chave PIX</label>
-            <select id="pix-key-type" class="form-input" style="background:var(--bg-input);color:var(--text-primary)">
-              <option value="chave_aleatoria">Chave aleatória</option>
-              <option value="email">E-mail</option>
-              <option value="telefone">Telefone</option>
-              <option value="cpf">CPF</option>
-              <option value="cnpj">CNPJ</option>
-            </select>
+          <div id="pix-fields-group">
+            <div class="form-group">
+              <label class="form-label">Valor por pessoa (R$)</label>
+              <input id="pix-entry-value-input" class="form-input" type="number" min="0" step="0.01" placeholder="20.00">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tipo da chave PIX</label>
+              <select id="pix-key-type" class="form-input" style="background:var(--bg-input);color:var(--text-primary)">
+                <option value="chave_aleatoria">Chave aleatória</option>
+                <option value="email">E-mail</option>
+                <option value="telefone">Telefone</option>
+                <option value="cpf">CPF</option>
+                <option value="cnpj">CNPJ</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Chave PIX</label>
+              <input id="pix-key-input" class="form-input" type="text" placeholder="sua chave pix">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Nome do recebedor <span style="color:var(--text-muted);font-weight:400">(para o QR code)</span></label>
+              <input id="pix-name-input" class="form-input" type="text" placeholder="Seu Nome">
+            </div>
+            <div class="form-group" style="margin-bottom:0">
+              <label class="form-label">Cidade <span style="color:var(--text-muted);font-weight:400">(para o QR code)</span></label>
+              <input id="pix-city-input" class="form-input" type="text" placeholder="Manaus">
+            </div>
           </div>
-          <div class="form-group">
-            <label class="form-label">Chave PIX</label>
-            <input id="pix-key-input" class="form-input" type="text" placeholder="sua chave pix">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Nome do recebedor <span style="color:var(--text-muted);font-weight:400">(para o QR code)</span></label>
-            <input id="pix-name-input" class="form-input" type="text" placeholder="Seu Nome">
-          </div>
-          <div class="form-group" style="margin-bottom:0">
-            <label class="form-label">Cidade <span style="color:var(--text-muted);font-weight:400">(para o QR code)</span></label>
-            <input id="pix-city-input" class="form-input" type="text" placeholder="Manaus">
+          <div id="prize-fields-group" style="display:none">
+            <div class="form-group" style="margin-bottom:0">
+              <label class="form-label">Valor do prêmio (R$)</label>
+              <input id="pix-prize-value-input" class="form-input" type="number" min="0" step="0.01" placeholder="500.00">
+            </div>
           </div>
           <button class="btn btn-primary" style="margin-top:16px" onclick="savePixSettings(this)">Salvar</button>
           <div id="pix-settings-msg" style="display:none;margin-top:10px;font-size:13px;font-weight:600;text-align:center"></div>
@@ -2502,11 +2515,11 @@ async function loadAdminPending() {
     const pendingData = await pendingRes.json();
     const allData = allRes.ok ? await allRes.json() : { users: [] };
     renderAdminPending(pendingData.users || []);
+    await loadPixSettings();
     renderAdminAll(allData.users || []);
   } catch (e) {
     document.getElementById('admin-pending-list').innerHTML = '<div class="empty-state">Erro ao carregar.</div>';
   }
-  loadPixSettings();
 }
 
 function renderAdminPending(users) {
@@ -2552,7 +2565,7 @@ function renderAdminAll(users) {
         <div style="font-size:12px;color:${STATUS_COLOR[u.status] || 'var(--text-muted)'}">
           ${esc(STATUS_LABEL[u.status] || u.status)}${u.email ? ' · ' + esc(u.email) : ''}
         </div>
-        ${u.role === 'admin' ? `
+        ${u.role === 'admin' && _paymentMode === 'per_person' ? `
         <label style="display:inline-flex;align-items:center;gap:7px;margin-top:8px;cursor:pointer;user-select:none" onclick="adminTogglePaid('${esc(u.nick)}', ${!u.paid})">
           <span style="width:17px;height:17px;border-radius:4px;border:2px solid ${u.paid ? '#4ade80' : 'rgba(255,255,255,0.25)'};background:${u.paid ? '#4ade80' : 'transparent'};display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s">
             ${u.paid ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-9"/></svg>' : ''}
@@ -2562,10 +2575,10 @@ function renderAdminAll(users) {
       </div>
       ${u.role !== 'admin' ? `
       <div class="admin-actions" style="flex-wrap:nowrap;align-items:center">
-        ${u.paid
+        ${_paymentMode === 'per_person' ? (u.paid
           ? `<button class="btn btn-sm" style="background:rgba(34,197,94,0.15);color:#4ade80;white-space:nowrap" data-nick="${esc(u.nick)}" onclick="adminTogglePaid(this.dataset.nick, false)">${icon('check',13)} Pago</button>`
           : `<button class="btn btn-sm" style="background:rgba(251,191,36,0.15);color:#fbbf24;white-space:nowrap" data-nick="${esc(u.nick)}" onclick="openRevokeModal('${esc(u.nick)}')">$ Pendente</button>`
-        }
+        ) : ''}
         <button class="btn btn-sm" style="background:rgba(255,255,255,0.07);color:var(--text-secondary);padding:8px 10px" title="Editar usuário" data-nick="${esc(u.nick)}" data-email="${esc(u.email||'')}" data-avatar="${u.avatar ? '1' : ''}" onclick="openEditUserModal(this.dataset.nick,this.dataset.email,this.dataset.avatar)">${icon('pencil',14)}</button>
         <button class="btn btn-sm btn-delete" style="padding:8px 10px" title="Excluir conta" data-nick="${esc(u.nick)}" onclick="adminDeleteUser(this.dataset.nick)">${icon('trash',14)}</button>
       </div>` : ''}
@@ -2793,11 +2806,18 @@ function buildPixPayload(key, name, city, value) {
 }
 
 async function loadPendingPayment() {
+  const loadingEl = document.getElementById('pending-pix-loading');
+  if (loadingEl) loadingEl.style.display = '';
   try {
     const r = await fetch('/api/bolao?action=settings');
     const { settings } = await r.json();
+    if (loadingEl) loadingEl.style.display = 'none';
     const entryValue = parseFloat(settings.entry_value || '0') || 0;
-    if (!settings.pix_key || entryValue <= 0) return;
+    if (!settings.pix_key || entryValue <= 0 || settings.payment_mode === 'fixed_prize') {
+      const textEl = document.getElementById('pending-text');
+      if (textEl) textEl.textContent = 'Aguarde o admin liberar seu acesso.';
+      return;
+    }
     document.getElementById('pending-pix-value').textContent = `R$ ${entryValue.toFixed(2).replace('.', ',')}`;
     document.getElementById('pending-pix-key-display').textContent = settings.pix_key;
     document.getElementById('pending-pix-key-info').style.display = 'block';
@@ -2809,7 +2829,9 @@ async function loadPendingPayment() {
       document.getElementById('pending-pix-qr').innerHTML = qr.createImgTag(4);
       document.getElementById('pending-pix-qr-wrap').style.display = 'block';
     } catch (_) {}
-  } catch (_) {}
+  } catch (_) {
+    if (loadingEl) loadingEl.style.display = 'none';
+  }
 }
 
 async function copyPendingPixKey() {
@@ -2865,6 +2887,35 @@ async function copyPixKey() {
 }
 
 let scoringPts = { exact: 10, result: 5, goal: 2 };
+let _paymentMode = 'per_person';
+
+function updateRulesPts() {
+  const e = document.getElementById('rules-pts-exact');
+  const r = document.getElementById('rules-pts-result');
+  const g = document.getElementById('rules-pts-goal');
+  if (e) e.textContent = `+${scoringPts.exact} pts`;
+  if (r) r.textContent = `+${scoringPts.result} pts`;
+  if (g) g.textContent = `+${scoringPts.goal} pts`;
+}
+
+function setPaymentMode(mode) {
+  _paymentMode = mode;
+  const btnPer = document.getElementById('btn-mode-per-person');
+  const btnFixed = document.getElementById('btn-mode-fixed-prize');
+  const pixGroup = document.getElementById('pix-fields-group');
+  const prizeGroup = document.getElementById('prize-fields-group');
+  if (mode === 'fixed_prize') {
+    if (btnPer) { btnPer.style.background = 'rgba(255,255,255,0.07)'; btnPer.style.color = 'var(--text-secondary)'; }
+    if (btnFixed) { btnFixed.style.background = 'var(--blue)'; btnFixed.style.color = '#fff'; }
+    if (pixGroup) pixGroup.style.display = 'none';
+    if (prizeGroup) prizeGroup.style.display = '';
+  } else {
+    if (btnPer) { btnPer.style.background = 'var(--blue)'; btnPer.style.color = '#fff'; }
+    if (btnFixed) { btnFixed.style.background = 'rgba(255,255,255,0.07)'; btnFixed.style.color = 'var(--text-secondary)'; }
+    if (pixGroup) pixGroup.style.display = '';
+    if (prizeGroup) prizeGroup.style.display = 'none';
+  }
+}
 
 async function loadAllSettings() {
   try {
@@ -2875,12 +2926,14 @@ async function loadAllSettings() {
       result: parseInt(settings.pts_result || '5')  || 5,
       goal:   parseInt(settings.pts_goal   || '2')  || 2,
     };
+    updateRulesPts();
     return settings;
   } catch (_) { return {}; }
 }
 
 async function loadPixSettings() {
   const settings = await loadAllSettings();
+  setPaymentMode(settings.payment_mode === 'fixed_prize' ? 'fixed_prize' : 'per_person');
   document.getElementById('pix-entry-value-input').value = settings.entry_value || '0.01';
   document.getElementById('pix-key-type').value = settings.pix_key_type || 'chave_aleatoria';
   document.getElementById('pix-key-input').value = settings.pix_key || '';
@@ -2889,6 +2942,8 @@ async function loadPixSettings() {
   document.getElementById('pts-exact').value  = settings.pts_exact  || '10';
   document.getElementById('pts-result').value = settings.pts_result || '5';
   document.getElementById('pts-goal').value   = settings.pts_goal   || '2';
+  const prizeInput = document.getElementById('pix-prize-value-input');
+  if (prizeInput) prizeInput.value = settings.prize_value || '0';
 }
 
 async function saveScoringSettings(btn) {
@@ -2903,7 +2958,7 @@ async function saveScoringSettings(btn) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ adminNick: session.nick, adminPass: session.pass, ptsExact, ptsResult, ptsGoal })
     });
-    if (r.ok) scoringPts = { exact: ptsExact, result: ptsResult, goal: ptsGoal };
+    if (r.ok) { scoringPts = { exact: ptsExact, result: ptsResult, goal: ptsGoal }; updateRulesPts(); }
     msg.textContent = r.ok ? 'Pontuação salva!' : (await r.json()).error || 'Erro.';
     msg.style.color = r.ok ? 'var(--green-text)' : 'var(--red-text)';
   } catch (_) {
@@ -2916,18 +2971,36 @@ async function saveScoringSettings(btn) {
 }
 
 async function savePixSettings(btn) {
+  const msg = document.getElementById('pix-settings-msg');
   const pixKey = document.getElementById('pix-key-input').value.trim();
   const pixKeyType = document.getElementById('pix-key-type').value;
   const pixName = document.getElementById('pix-name-input').value.trim();
   const pixCity = document.getElementById('pix-city-input').value.trim();
   const entryValue = parseFloat(document.getElementById('pix-entry-value-input').value) || 0;
-  const msg = document.getElementById('pix-settings-msg');
+  const prizeValue = parseFloat(document.getElementById('pix-prize-value-input').value) || 0;
+  const paymentMode = _paymentMode;
+
+  if (paymentMode === 'fixed_prize' && prizeValue <= 0) {
+    msg.textContent = 'Informe um valor de prêmio maior que zero.';
+    msg.style.color = 'var(--red-text)';
+    msg.style.display = 'block';
+    setTimeout(() => { msg.style.display = 'none'; }, 3000);
+    return;
+  }
+  if (paymentMode === 'per_person' && pixKey && entryValue <= 0) {
+    msg.textContent = 'Informe um valor por pessoa maior que zero.';
+    msg.style.color = 'var(--red-text)';
+    msg.style.display = 'block';
+    setTimeout(() => { msg.style.display = 'none'; }, 3000);
+    return;
+  }
+
   btn.disabled = true; btn.textContent = 'Salvando...'; btn.style.opacity = '0.7';
   try {
     const r = await fetch('/api/bolao?action=save-settings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ adminNick: session.nick, adminPass: session.pass, pixKey, pixKeyType, pixName, pixCity, entryValue })
+      body: JSON.stringify({ adminNick: session.nick, adminPass: session.pass, pixKey, pixKeyType, pixName, pixCity, entryValue, paymentMode, prizeValue })
     });
     if (r.ok) {
       msg.textContent = 'Configurações salvas!';

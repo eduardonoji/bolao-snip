@@ -132,7 +132,9 @@ module.exports = async function handler(req, res) {
       const settingsMap = {};
       for (const r of settingsRows) settingsMap[r.key] = r.value;
       const entryValue = parseFloat(settingsMap.entry_value || '0') || 0;
-      const prize = (parseInt(paidCountRows[0].count) || 0) * entryValue;
+      const prize = settingsMap.payment_mode === 'fixed_prize'
+        ? (parseFloat(settingsMap.prize_value) || 0)
+        : (parseInt(paidCountRows[0].count) || 0) * entryValue;
       const pts = ptsFromSettings(settingsMap);
 
       const byNick = {};
@@ -268,7 +270,7 @@ module.exports = async function handler(req, res) {
     }
 
     if (req.method === 'POST' && action === 'save-settings') {
-      const { adminNick, adminPass, pixKey, pixKeyType, pixName, pixCity, entryValue, ptsExact, ptsResult, ptsGoal } = req.body;
+      const { adminNick, adminPass, pixKey, pixKeyType, pixName, pixCity, entryValue, ptsExact, ptsResult, ptsGoal, paymentMode, prizeValue } = req.body;
       const admin = await verifyUser(adminNick, adminPass);
       if (!admin || admin.role !== 'admin') return res.status(403).json({ error: 'Acesso negado' });
       const entries = [
@@ -280,6 +282,8 @@ module.exports = async function handler(req, res) {
         ['pts_exact',  String(parseInt(ptsExact)  || 10)],
         ['pts_result', String(parseInt(ptsResult) || 5)],
         ['pts_goal',   String(parseInt(ptsGoal)   || 2)],
+        ['payment_mode', paymentMode === 'fixed_prize' ? 'fixed_prize' : 'per_person'],
+        ['prize_value', String(parseFloat(prizeValue) || 0)],
       ];
       for (const [key, value] of entries) {
         await sql`INSERT INTO settings (key, value) VALUES (${key}, ${value}) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`;
