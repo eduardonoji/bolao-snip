@@ -1483,6 +1483,7 @@ let myPalpitesCache = {};
 let insightsCache = null;
 let liveInterval = null;
 let statusPollInterval = null;
+let mainStatusCheckInterval = null;
 
 // ---- SCREEN ----
 function showScreen(name) {
@@ -1637,6 +1638,35 @@ function stopStatusPolling() {
   if (statusPollInterval) { clearInterval(statusPollInterval); statusPollInterval = null; }
 }
 
+function startMainStatusCheck() {
+  stopMainStatusCheck();
+  mainStatusCheckInterval = setInterval(async () => {
+    if (!session) return;
+    try {
+      const r = await fetch(`/api/auth?action=status&nick=${encodeURIComponent(session.nick)}&pass=${encodeURIComponent(session.pass)}`);
+      if (!r.ok) return;
+      const data = await r.json();
+      if (data.status !== 'approved') {
+        session.status = data.status;
+        localStorage.setItem('session', JSON.stringify(session));
+        stopMainStatusCheck();
+        stopLiveInterval();
+        if (data.status === 'pending') {
+          showScreen('pending');
+          startStatusPolling();
+          loadPendingPayment();
+        } else {
+          doLogout();
+        }
+      }
+    } catch (_) {}
+  }, 60000);
+}
+
+function stopMainStatusCheck() {
+  if (mainStatusCheckInterval) { clearInterval(mainStatusCheckInterval); mainStatusCheckInterval = null; }
+}
+
 function toggleRulesVideo() {
   const v = document.getElementById('rules-video');
   v.muted = !v.muted;
@@ -1653,6 +1683,7 @@ function doLogout() {
   insightsCache = null;
   stopLiveInterval();
   stopStatusPolling();
+  stopMainStatusCheck();
   showScreen('auth');
 }
 
@@ -1669,6 +1700,7 @@ function enterMain() {
   if (gamesBtn) gamesBtn.classList.add('active');
   showScreen('main');
   loadGames();
+  startMainStatusCheck();
   requestAnimationFrame(() => {
     const activeBtn = document.querySelector('.nav-item.active');
     updateNavIndicator(activeBtn, true);
