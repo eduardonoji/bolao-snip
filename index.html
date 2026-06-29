@@ -982,6 +982,59 @@
       display: none;
     }
     .success-msg.visible { display: block; }
+
+    /* ---- TOAST PALPITE ---- */
+    .bet-toast {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.82);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 1100;
+      background: var(--bg-card);
+      border: 1px solid rgba(34,197,94,0.3);
+      border-radius: 22px;
+      padding: 28px 32px 24px;
+      text-align: center;
+      min-width: 220px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.55), 0 0 0 1px rgba(34,197,94,0.08) inset;
+      transition: opacity 0.18s ease, transform 0.18s ease;
+    }
+    .bet-toast.visible {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+      pointer-events: auto;
+    }
+    .bet-toast-close {
+      position: absolute;
+      top: 10px; right: 12px;
+      background: none; border: none;
+      color: var(--text-muted); cursor: pointer;
+      font-size: 20px; line-height: 1;
+      padding: 2px 4px;
+      border-radius: 6px;
+      transition: color 0.15s;
+    }
+    .bet-toast-close:hover { color: var(--text-secondary); }
+    .bet-toast-icon {
+      width: 60px; height: 60px;
+      border-radius: 50%;
+      background: rgba(34,197,94,0.13);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 14px;
+    }
+    .bet-toast.visible .bet-toast-icon {
+      animation: checkPop 0.3s cubic-bezier(.36,1.56,.64,1) both;
+    }
+    @keyframes checkPop {
+      from { transform: scale(0.4); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+    .bet-toast-label {
+      font-size: 16px; font-weight: 700;
+      color: var(--text-primary);
+    }
     .checkbox-row {
       display: flex;
       align-items: flex-start;
@@ -1471,6 +1524,15 @@
       <button id="btn-reset-scores" class="btn" style="background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3);opacity:0.4;pointer-events:none" onclick="confirmResetScores()">Zerar tudo</button>
     </div>
   </div>
+</div>
+
+<!-- Toast: confirmação de palpite -->
+<div id="bet-toast" class="bet-toast">
+  <button class="bet-toast-close" onclick="closeBetToast()">×</button>
+  <div class="bet-toast-icon">
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="#22c55e" stroke="none"><path d="M17 3.34a10 10 0 1 1 -14.995 8.984l-.005 -.324l.005 -.324a10 10 0 0 1 14.995 -8.336zm-1.293 5.953a1 1 0 0 0 -1.32 -.083l-.094 .083l-3.293 3.292l-1.293 -1.292l-.094 -.083a1 1 0 0 0 -1.403 1.403l.083 .094l2 2l.094 .083a1 1 0 0 0 1.226 0l.094 -.083l4 -4l.083 -.094a1 1 0 0 0 -.083 -1.32z"/></svg>
+  </div>
+  <div class="bet-toast-label" id="bet-toast-label">Palpite salvo!</div>
 </div>
 
 <div class="sheet" id="profile-sheet">
@@ -2103,6 +2165,21 @@ function renderGameCard(g) {
     </div>`;
 }
 
+let _betToastTimer = null;
+function showBetToast(label) {
+  const el = document.getElementById('bet-toast');
+  document.getElementById('bet-toast-label').textContent = label;
+  el.classList.remove('visible');
+  void el.offsetWidth;
+  el.classList.add('visible');
+  if (_betToastTimer) clearTimeout(_betToastTimer);
+  _betToastTimer = setTimeout(closeBetToast, 1500);
+}
+function closeBetToast() {
+  document.getElementById('bet-toast').classList.remove('visible');
+  if (_betToastTimer) { clearTimeout(_betToastTimer); _betToastTimer = null; }
+}
+
 async function savePalpite(gameId) {
   const h = parseInt(document.getElementById('h-' + gameId).value);
   const a = parseInt(document.getElementById('a-' + gameId).value);
@@ -2110,6 +2187,7 @@ async function savePalpite(gameId) {
     alert('Preencha os dois placares corretamente.');
     return;
   }
+  const isUpdate = !!myPalpitesCache[gameId];
   const btn = document.getElementById('save-btn-' + gameId);
   if (btn) { btn.disabled = true; btn.innerHTML = `<span class="spin" style="display:inline-block">${icon('loader',14)}</span> Salvando...`; }
   try {
@@ -2126,6 +2204,7 @@ async function savePalpite(gameId) {
     }
     myPalpitesCache[gameId] = { h, a };
     renderGames();
+    showBetToast(isUpdate ? 'Palpite atualizado!' : 'Palpite salvo!');
   } catch (e) {
     alert('Erro de conexão.');
   }
