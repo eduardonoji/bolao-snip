@@ -572,6 +572,30 @@
       50% { opacity: 0.5; }
     }
 
+    /* ---- CARD DO BRASIL ---- */
+    .game-card-brasil {
+      background: linear-gradient(160deg, rgba(0,110,38,0.18) 0%, var(--bg-card) 48%, rgba(255,218,0,0.06) 100%);
+      border-color: rgba(255, 215, 0, 0.28);
+      position: relative;
+      overflow: hidden;
+    }
+    .game-card-brasil::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, #009c3b 0%, #ffdf00 40%, #009c3b 70%, #ffdf00 100%);
+    }
+    .badge-brasil {
+      background: linear-gradient(135deg, rgba(0,130,45,0.35), rgba(255,210,0,0.2));
+      color: #fde047;
+      border: 1px solid rgba(255,215,0,0.3);
+      letter-spacing: 0.08em;
+    }
+    .team-name-brasil {
+      color: #fde047;
+    }
+
     .game-teams {
       display: flex;
       align-items: center;
@@ -1966,12 +1990,15 @@ function renderGameCard(g) {
   const d = new Date(g.datetime);
   const time = d.toLocaleTimeString('pt-BR', { timeZone: 'America/Manaus', hour: '2-digit', minute: '2-digit' });
   const p = myPalpitesCache[g.id];
+  const isBrasil = g.home === 'Brasil' || g.away === 'Brasil';
 
   let badgeHtml;
   if (g.status === 'in_progress') {
     badgeHtml = `<span class="badge badge-live">AO VIVO</span>`;
   } else if (g.status === 'completed') {
     badgeHtml = `<span class="badge badge-done">Encerrado</span>`;
+  } else if (isBrasil) {
+    badgeHtml = `<span class="badge badge-brasil">★ HOJE ★</span>`;
   } else {
     badgeHtml = `<span class="badge badge-today">Hoje</span>`;
   }
@@ -2055,19 +2082,19 @@ function renderGameCard(g) {
   }
 
   return `
-    <div class="game-card">
+    <div class="game-card${isBrasil ? ' game-card-brasil' : ''}">
       <div class="game-header">
         <span class="game-time">${icon('clock', 12)} ${time}</span>
         ${badgeHtml}
       </div>
       <div class="game-teams">
         <div class="team-block">
-          <span class="team-name">${g.home}</span>
+          <span class="team-name${g.home === 'Brasil' ? ' team-name-brasil' : ''}">${g.home}</span>
           <span class="team-flag">${teamFlag(g.home)}</span>
         </div>
         <span class="vs-sep">vs</span>
         <div class="team-block">
-          <span class="team-name">${g.away}</span>
+          <span class="team-name${g.away === 'Brasil' ? ' team-name-brasil' : ''}">${g.away}</span>
           <span class="team-flag">${teamFlag(g.away)}</span>
         </div>
       </div>
@@ -2348,6 +2375,7 @@ function renderProfile(data) {
     statChip('erros',      miss,   '#f87171'),
   ].join('');
 
+  const isOwnProfile = data.nick === session.nick;
   const rows = data.bets.map(b => {
     const d = new Date(b.datetime);
     const time = d.toLocaleTimeString('pt-BR', { timeZone: 'America/Manaus', hour: '2-digit', minute: '2-digit' });
@@ -2356,15 +2384,21 @@ function renderProfile(data) {
     const hasResult = b.homeScore !== null && b.awayScore !== null;
     const resultLabel = b.status === 'in_progress' ? 'Ao vivo' : 'Resultado';
     const resultVal = hasResult ? `${b.homeScore}×${b.awayScore}` : '—';
+    const hidePalpite = !isOwnProfile && b.status === 'scheduled';
+    const palpiteVal = hidePalpite ? '—' : `${b.palpiteH}×${b.palpiteA}`;
+    const palpiteLabel = hidePalpite ? 'Oculto' : 'Palpite';
     return `
       <div class="bet-row">
         <div class="bet-info">
-          <div class="bet-teams">${esc(b.home)} × ${esc(b.away)}${b.status === 'in_progress' ? ' <span class="bet-live">●</span>' : ''}</div>
+          <div style="display:flex;align-items:center;gap:5px;min-width:0">
+            <div class="bet-teams">${esc(b.home)} × ${esc(b.away)}</div>
+            ${b.status === 'in_progress' ? '<span class="bet-live" style="flex-shrink:0">●</span>' : ''}
+          </div>
           <div class="bet-meta">Grupo ${esc(b.group)} · ${date} ${time}</div>
         </div>
         <div class="bet-col">
-          <span class="bet-score-label">Palpite</span>
-          <span class="bet-score-val">${b.palpiteH}×${b.palpiteA}</span>
+          <span class="bet-score-label">${palpiteLabel}</span>
+          <span class="bet-score-val">${palpiteVal}</span>
         </div>
         <div class="bet-col">
           <span class="bet-score-label">${resultLabel}</span>
